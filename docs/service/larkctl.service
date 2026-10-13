@@ -1,0 +1,14 @@
+# ~/.config/systemd/user/larkctl.service
+#   systemctl --user daemon-reload && systemctl --user enable --now larkctl
+#   loginctl enable-linger $USER   # keep running after logout
+[Unit]
+Description=larkctl Feishu/Lark remote control
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/env npx -y larkctl start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

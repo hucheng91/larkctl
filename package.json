@@ -1,0 +1,54 @@
+{
+  "name": "larkctl",
+  "version": "0.1.0",
+  "description": "Control your computer and local coding agents (Codex, Claude Code, OpenCode) from your phone via a Feishu/Lark bot — no NAT/VPN needed",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "feishu",
+    "lark",
+    "bot",
+    "remote",
+    "codex",
+    "claude-code",
+    "opencode",
+    "coding-agent"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.75.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^20.19.43",
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^2.1.9"
+  },
+  "type": "module",
+  "bin": {
+    "larkctl": "dist/cli.js"
+  },
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "README.zh-CN.md",
+    "docs"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hucheng91/larkctl.git"
+  }
+}

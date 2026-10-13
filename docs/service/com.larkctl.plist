@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Save to ~/Library/LaunchAgents/com.larkctl.plist, edit paths, then:
+     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.larkctl.plist
+     (LaunchAgent, not LaunchDaemon: runs as you, can use screencapture & your agent logins) -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.larkctl</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/npx</string>
+    <string>-y</string>
+    <string>larkctl</string>
+    <string>start</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/larkctl.log</string>
+  <key>StandardErrorPath</key><string>/tmp/larkctl.log</string>
+</dict>
+</plist>

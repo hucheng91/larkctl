@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [20]
+        include:
+          - os: ubuntu-latest
+            node: 22
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: mock-mode smoke test
+        shell: bash
+        run: printf '/help\n/whoami\n/sh echo smoke-ok\n' | node dist/cli.js start --mock | tee smoke.txt && grep -q smoke-ok smoke.txt
+        env:
+          LARKCTL_CONFIG_DIR: ${{ runner.temp }}/larkctl

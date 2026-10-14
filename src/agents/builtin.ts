@@ -19,8 +19,8 @@ const CLAUDE_AUTH_HINT = ' — run `claude` then /login on this machine, or set 
 export const codexAdapter: AgentAdapter = {
   name: 'codex',
   description: 'OpenAI Codex CLI (codex exec)',
-  buildInvocation({ prompt, cwd, sessionId, extraArgs = [] }) {
-    const common = ['--json', '--skip-git-repo-check', ...extraArgs];
+  buildInvocation({ prompt, cwd, sessionId, extraArgs = [], images = [] }) {
+    const common = ['--json', '--skip-git-repo-check', ...images.map((f) => `--image=${f}`), ...extraArgs];
     const args = sessionId
       ? ['exec', 'resume', ...common, sessionId, '-']
       : ['exec', ...common, '--cd', cwd, '-'];

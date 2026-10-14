@@ -65,9 +65,18 @@ flowchart LR
 | `/stop` | Kill the running job (whole process tree). |
 | `/status` | Agent, session, cwd, running job. |
 | `/screenshot` | Capture the screen and send as image (macOS `screencapture`, Windows .NET, Linux gnome-screenshot/scrot/import). |
+| `/menu` (or `help`, `菜单`, any unknown command) | **Quick-select card**: buttons to switch agent (codex / claude / opencode / custom), pick a project, new session, stop, screenshot, status. No typing needed on the phone. |
+| `截图` / `screenshot` | Natural-language shortcut for `/screenshot`. `做得怎么样` / `进度` / `好了吗` → status card + screenshot. (Only short messages ≤16 chars trigger this.) |
 | `/whoami` | Your open_id and chat_id — works for anyone, for setup. |
 
-One job runs per chat at a time; others get "Busy". Agent progress: one card is sent and **patched** every `progressIntervalSec` with recent tool calls / commands and the latest assistant text, then finalised with the answer. Output longer than `maxReplyChars` is truncated (head + tail) in the card and the full text attached as a file.
+### Phone-friendly input: voice, images, threads
+
+- **Voice 🎤** — hold-to-talk in Feishu. The audio is downloaded (`im.messageResource`), converted with `ffmpeg` (opus → 16 kHz PCM) and transcribed with **Feishu ASR** (`speech_to_text` API, needs scope `speech_to_text:speech`), falling back to a local **whisper** (`whisper-cli` from whisper.cpp, `whisper` from openai-whisper, or your `whisperCommand`). The recognised text is echoed (`🎤 …`) and then handled exactly like typed text (prompt, `/command`, or 截图). Config: `"asr": "auto" | "feishu" | "whisper" | "off"`, `"whisperCommand": "my-asr {file}"`. If nothing can transcribe, the bot replies with the reason.
+- **Images 🖼** — images (image messages or images inside a rich-text post) are saved to `<project>/.larkctl/inbox/` and passed to the agent: Codex gets `--image=<file>`, every agent also gets the file paths appended to the prompt. An image sent on its own is held and attached to your **next** message.
+- **Images back** — `/screenshot` (or the 📸 button, or 截图) uploads via `im.image.create` and replies in the same thread. When an agent's answer mentions an image file it created/modified during the run (e.g. `saved to chart.png`), up to 3 such images are sent back (`"sendAgentImages": false` to disable).
+- **Threads (话题)** — every Feishu thread gets its own agent choice, project dir, agent session and running job, so several threads can work **in parallel**; replies are posted into the thread (`reply_in_thread`). Messages outside threads share one per-chat state. `/stop` only stops the job of the thread you send it in. Bindings are persisted in `state.json` (key `chat_id#thread_id`). A new thread inherits the chat's current agent and project.
+
+One job runs per chat **or thread** at a time; others get "Busy". Agent progress: one card is sent and **patched** every `progressIntervalSec` with recent tool calls / commands and the latest assistant text, then finalised with the answer. Output longer than `maxReplyChars` is truncated (head + tail) in the card and the full text attached as a file.
 
 ## Coding agents
 
@@ -138,9 +147,12 @@ Register it in `config.json`: `"plugins": ["./my-adapter.mjs", "larkctl-adapter-
    - `im:message:send_as_bot` — send messages as the bot
    - `im:message` — read/send messages; needed for replying to and **updating (patching) card messages**
    - `im:resource` — upload images/files (screenshots, long output)
-   (Batch import: `{"scopes":{"tenant":["im:message","im:message:send_as_bot","im:message.p2p_msg:readonly","im:message.group_at_msg:readonly","im:resource"]}}`)
+   - `speech_to_text:speech` — (optional) voice message transcription via Feishu ASR
+   (Batch import: `{"scopes":{"tenant":["im:message","im:message:send_as_bot","im:message.p2p_msg:readonly","im:message.group_at_msg:readonly","im:resource","speech_to_text:speech"]}}`)
 5. Run `npx larkctl init` then `npx larkctl start` on your computer **first** — the console checks for a live connection when you pick long-connection mode.
 6. **Events & Callbacks → Event configuration**: subscription mode **"Receive events through persistent connection" / 使用长连接接收事件**, save; **Add event** → `im.message.receive_v1` (Receive message v2.0).
+   **Callback configuration** tab (回调配置): subscription mode **persistent connection** too, then **Add callback** → `card.action.trigger` (卡片回传交互) — required for the quick-select buttons.
+   Optional: **Bot → Custom menu** (机器人自定义菜单) — you can add menu items that *send a text message* such as `/menu`, `/screenshot`, `/status`, `/stop`; larkctl handles them like typed text (it does not subscribe to the bot-menu event).
 7. **Version Management & Release** → create a version, set availability to yourself, submit/publish (in your own tenant, an admin approval may be needed; changes to scopes/events only take effect after publishing a new version).
 8. Find the bot in Feishu (search its name), DM `/whoami`, put your `open_id` into the allowlist (`npx larkctl init` again), restart.
 9. Groups (optional): add the bot to a group, @-mention it with `/whoami` to get the `chat_id`, add it to `allowChats`. In groups only @-mentions reach the bot, and the sender must still be in `allowUsers` (unless `allowAnyUserInAllowedChats`).
@@ -181,7 +193,8 @@ This is remote code execution on your computer by design. Read before using:
 - Verified locally with the SDK's `EventDispatcher` and a mocked client, plus `--mock` mode; not yet exercised against a live tenant by the author's CI.
 - Agent output formats (Codex `--json`, Claude `stream-json`, OpenCode `--format json`) change between versions; parsers are best-effort and fall back to raw output.
 - Non-interactive agents can't ask for approval mid-run; there is no interactive TTY/tmux mode (see prior art below if you need that).
-- Only text and post messages are understood (no images/files from you to the bot yet). One job per chat.
+- Text, post, image and voice messages are understood; other files are not. One job per chat/thread.
+- Feishu ASR accepts up to ~60 s of audio.
 - Card markdown has size limits; very long answers are attached as files.
 - Dangerous-command detection is pattern-based and bypassable.
 

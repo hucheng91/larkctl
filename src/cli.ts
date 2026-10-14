@@ -75,8 +75,9 @@ async function runReal(cfg: Config, agents: AgentRegistry, audit: AuditLog, dir:
   if (!cfg.allowUsers.length) log('WARNING: allowlist is empty — every request will be denied. Send /whoami to the bot to get your open_id, then run `larkctl init`.');
   const { startLark } = await import('./lark.js');
   const holder: { bot?: Bot } = {};
-  const { transport } = await startLark(cfg, (m) => { void holder.bot?.handle(m).catch((e) => log(`handler error: ${(e as Error).message}`)); }, log);
-  holder.bot = new Bot({ config: cfg, transport, agents, audit, statePath: path.join(dir, 'state.json'), screenshot: takeScreenshot });
+  const { transport, media } = await startLark(cfg, (m) => { void holder.bot?.handle(m).catch((e) => log(`handler error: ${(e as Error).message}`)); }, log,
+    async (a) => { try { return (await holder.bot?.handleAction(a)) ?? {}; } catch (e) { log(`card action error: ${(e as Error).message}`); return {}; } });
+  holder.bot = new Bot({ config: cfg, transport, agents, audit, statePath: path.join(dir, 'state.json'), screenshot: takeScreenshot, media });
   log(`serving (${cfg.domain}, app ${cfg.appId}, ${cfg.allowUsers.length} allowed users, read-only=${cfg.readOnly}, agents: ${agents.list().map((a) => a.name).join(',')})`);
 }
 

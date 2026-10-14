@@ -43,6 +43,12 @@ export interface Config {
   /** Extra regexes (strings) treated as dangerous. */
   extraDangerousPatterns: string[];
   progressIntervalSec: number;
+  /** Voice transcription: 'auto' = Feishu ASR then local whisper; 'feishu'; 'whisper'; 'off'. */
+  asr: 'auto' | 'feishu' | 'whisper' | 'off';
+  /** Local transcription command; `{file}` = 16k mono wav path, stdout = text. Default: auto-detect whisper/whisper-cli. */
+  whisperCommand: string;
+  /** Send image files mentioned in an agent's answer back to the chat. */
+  sendAgentImages: boolean;
 }
 
 export function defaultConfig(): Config {
@@ -66,6 +72,9 @@ export function defaultConfig(): Config {
     agentArgs: {},
     extraDangerousPatterns: [],
     progressIntervalSec: 5,
+    asr: 'auto',
+    whisperCommand: '',
+    sendAgentImages: true,
   };
 }
 

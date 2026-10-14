@@ -19,6 +19,8 @@ export interface AgentRunOptions {
   sessionId?: string;
   /** Extra user-configured args (config.agentArgs[name]). */
   extraArgs?: string[];
+  /** Local image files attached by the user (paths are also listed in the prompt). */
+  images?: string[];
 }
 
 export interface AgentInvocation {

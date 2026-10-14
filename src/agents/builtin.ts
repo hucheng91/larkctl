@@ -9,6 +9,9 @@ function json(line: string): Record<string, any> | null {
 
 const short = (s: unknown, n = 120) => { const t = String(s ?? '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
 
+const CODEX_AUTH_HINT = ' — codex is not logged in on this machine; run `codex login --device-auth` (or `codex login --with-api-key`).';
+const CLAUDE_AUTH_HINT = ' — run `claude` then /login on this machine, or set ANTHROPIC_API_KEY.';
+
 /**
  * OpenAI Codex CLI: `codex exec --json` (JSONL events), resume with
  * `codex exec resume <SESSION_ID> <prompt>`.
@@ -36,8 +39,12 @@ export const codexAdapter: AgentAdapter = {
       else if (item.type === 'reasoning' && item.text) ev.push({ type: 'progress', text: `💭 ${short(item.text)}` });
     } else if (o.type === 'item.started' && item?.type === 'command_execution') {
       ev.push({ type: 'progress', text: `$ ${short(item.command)} …` });
+    } else if (o.type === 'error' && /^Reconnecting\.\.\./.test(String(o.message ?? ''))) {
+      // transient retry notice, not a final failure
+      ev.push({ type: 'progress', text: `↻ ${short(o.message, 100)}` });
     } else if (o.type === 'turn.failed' || o.type === 'error') {
-      ev.push({ type: 'error', text: short(o.error?.message ?? o.message, 500) });
+      const msg = String(o.error?.message ?? o.message ?? 'unknown error');
+      ev.push({ type: 'error', text: short(msg, 500) + (/401 Unauthorized|Missing bearer|not logged in/i.test(msg) ? CODEX_AUTH_HINT : '') });
     }
     return ev;
   },
@@ -59,12 +66,16 @@ export const claudeAdapter: AgentAdapter = {
     if (!o) return [];
     const ev: AgentEvent[] = [];
     if (o.session_id && (o.type === 'system' || o.type === 'result')) ev.push({ type: 'session', id: o.session_id });
-    if (o.type === 'assistant') {
+    if (o.type === 'assistant' && (o.is_api_error_message || o.error)) {
+      const t = (o.message?.content ?? []).map((c: { text?: string }) => c.text ?? '').join(' ').trim() || String(o.error);
+      ev.push({ type: 'error', text: short(t, 500) + (/login|authentication/i.test(t + o.error) ? CLAUDE_AUTH_HINT : '') });
+    } else if (o.type === 'assistant') {
       for (const c of o.message?.content ?? []) {
         if (c.type === 'text' && c.text) ev.push({ type: 'text', text: c.text });
         else if (c.type === 'tool_use') ev.push({ type: 'progress', text: `🔧 ${c.name} ${short(JSON.stringify(c.input ?? {}), 100)}` });
       }
-    } else if (o.type === 'result' && o.is_error) {
+    } else if (o.type === 'result' && o.is_error && o.terminal_reason !== 'api_error') {
+      // api_error results repeat the assistant error message already reported above
       ev.push({ type: 'error', text: short(o.result ?? o.subtype, 500) });
     }
     return ev;

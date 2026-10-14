@@ -77,3 +77,19 @@ describe('plugin loading', () => {
     expect(r.errors[0]).toContain('larkctl-adapter-does-not-exist');
   });
 });
+
+describe('auth failures (real CLI output shapes)', () => {
+  it('codex: reconnect notices are progress, 401 gets login hint', () => {
+    expect(codexAdapter.parseLine!('{"type":"error","message":"Reconnecting... 2/5 (unexpected status 401)"}')[0].type).toBe('progress');
+    const e = codexAdapter.parseLine!('{"type":"turn.failed","error":{"message":"unexpected status 401 Unauthorized: Missing bearer"}}');
+    expect(e[0].type).toBe('error');
+    expect(e[0].type === 'error' && e[0].text).toContain('codex login');
+  });
+  it('claude: not-logged-in surfaces once as error', () => {
+    const a = claudeAdapter.parseLine!(JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'Not logged in · Please run /login' }] }, error: 'authentication_failed', is_api_error_message: true, session_id: 'S' }));
+    expect(a).toHaveLength(1);
+    expect(a[0].type).toBe('error');
+    const r = claudeAdapter.parseLine!(JSON.stringify({ type: 'result', is_error: true, terminal_reason: 'api_error', result: 'Not logged in', session_id: 'S' }));
+    expect(r.filter((x) => x.type === 'error')).toHaveLength(0);
+  });
+});

@@ -246,11 +246,15 @@ export class Bot {
     try {
       const r = await job.done;
       if (buf) { for (const e of parse(stripAnsi(buf))) onEvent(e); buf = ''; }
+      // a failed run that produced nothing shouldn't be resumed next time (e.g. auth failure)
+      if (r.code !== 0 && !texts.length && errors.length) { if (sessionId) s.sessions[adapter.name] = sessionId; else delete s.sessions[adapter.name]; }
       this.save();
       let answer = texts.join('\n\n').trim();
       if (!answer && adapter.finalize) answer = adapter.finalize(r.output);
+      const uniqErrors = [...new Set(errors)];
+      if (!answer && uniqErrors.length) answer = `**Error:**\n${uniqErrors.join('\n')}`;
+      else if (uniqErrors.length) answer += `\n\n**Errors:**\n${uniqErrors.join('\n')}`;
       if (!answer) answer = stripAnsi(r.output).trim().slice(-this.d.config.maxReplyChars) || '(no output)';
-      if (errors.length) answer += `\n\n**Errors:**\n${errors.join('\n')}`;
       const status = r.timedOut ? `⏱ timed out after ${this.d.config.agentTimeoutSec}s` : r.killed ? '⏹ stopped' : `${r.code === 0 ? '✅ done' : `❌ exit ${r.code}`} in ${Math.round(r.durationMs / 1000)}s · ${progress.length} steps`;
       this.audit.write({ event: 'agent_done', agent: adapter.name, code: r.code, timedOut: r.timedOut, ms: r.durationMs, session: s.sessions[adapter.name] ?? null });
       await this.sendOutput(m, title, answer, status, r.code === 0 && !r.killed && !r.timedOut ? 'green' : 'red', 'agent-output.md', false, cardId);

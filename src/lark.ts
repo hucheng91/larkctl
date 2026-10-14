@@ -142,14 +142,14 @@ const hdr = (f: WsFrame, k: string) => f.headers?.find((h) => h.key === k)?.valu
  * silently ignored (button stays "pressed"). Rewrite card frames to 'event' so they reach the
  * EventDispatcher, and restore type 'card' on the ack/response frame. Also logs inbound frame types.
  */
-export function patchWsClient(ws: lark.WSClient, log: (s: string) => void) {
+export function patchWsClient(ws: lark.WSClient, log: (s: string) => void, debug = !!process.env.LARKCTL_DEBUG) {
   const w = ws as unknown as {
     handleEventData: (d: WsFrame) => Promise<void>; handleControlData: (d: WsFrame) => Promise<void>; sendMessage: (d: WsFrame) => void;
     communicate: () => void; wsConfig: { getWSInstance: () => { on: (e: string, f: (b: Buffer) => void) => void } | undefined };
   };
   // Lowest level: raw socket 'message' before SDK decode (attached before the SDK's own listener).
   const origComm = w.communicate.bind(ws);
-  w.communicate = () => {
+  if (debug) w.communicate = () => {
     let first = true;
     log('ws raw hook attached');
     w.wsConfig.getWSInstance()?.on('message', (b: Buffer) => {
@@ -160,7 +160,7 @@ export function patchWsClient(ws: lark.WSClient, log: (s: string) => void) {
     origComm();
   };
   const origCtl = w.handleControlData.bind(ws);
-  w.handleControlData = (d: WsFrame) => {
+  if (debug) w.handleControlData = (d: WsFrame) => {
     const t = hdr(d, 'type');
     if (t !== 'ping' && t !== 'pong') log(`ws control frame type=${t} headers=${d.headers.map((h) => h.key).join(',')}`);
     return origCtl(d);
@@ -171,7 +171,7 @@ export function patchWsClient(ws: lark.WSClient, log: (s: string) => void) {
   w.handleEventData = (d: WsFrame) => {
     const type = hdr(d, 'type');
     const id = hdr(d, 'message_id') ?? '';
-    log(`ws frame type=${type} message_id=${id} method=${String(d.method)} headers=${d.headers.map((h) => h.key).join(',')}`);
+    if (debug) log(`ws frame type=${type} message_id=${id} method=${String(d.method)} headers=${d.headers.map((h) => h.key).join(',')}`);
     if (type === 'card') {
       cardIds.add(id);
       d = { ...d, headers: d.headers.map((h) => (h.key === 'type' ? { ...h, value: 'event' } : h)) };

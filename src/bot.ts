@@ -70,6 +70,8 @@ Dangerous commands require \`confirm <code>\`.`;
 
 const IMG_RE = /\.(png|jpe?g|gif|webp)$/i;
 
+export const NUMBER_HINT = '按钮点了没反应？（如飞书个人版不支持卡片回调）直接回复数字即可 · Buttons not responding? Reply with a number.';
+
 export class Bot {
   private state = new Map<string, ChatState>();
   private pending = new Map<string, Pending>();
@@ -113,7 +115,7 @@ export class Bot {
       const s = this.st(m);
       s.choices = flat.map((b) => b.cmd);
       this.save();
-      body += `\n\n**回复数字选择 Reply with a number:**\n${flat.map((b, i) => `${i + 1}. ${b.text} — \`${b.cmd}\``).join('\n')}`;
+      body += `\n\n${flat.map((b, i) => `${i + 1}. ${b.text} — \`${b.cmd}\``).join('\n')}\n<font color='grey'>${NUMBER_HINT}</font>`;
     }
     return this.d.transport.replyCard(m.messageId, { title, body, color, buttons, actionContext: buttons ? this.ctx(m) : undefined }, this.opts(m));
   }

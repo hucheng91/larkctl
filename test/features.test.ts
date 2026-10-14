@@ -42,6 +42,9 @@ describe('cards & quick-select', () => {
     const c = last().card!;
     const flat = c.buttons!.flat();
     expect(c.body).toContain(`1. ${flat[0].text}`);
+    expect(c.buttons!.length).toBeGreaterThan(0);
+    expect(c.body).toContain('直接回复数字即可 · Buttons not responding? Reply with a number.');
+    expect(c.body.trim().endsWith('</font>')).toBe(true);
     const i = flat.findIndex((b) => b.cmd === '/status');
     await send(String(i + 1));
     expect(last().card!.title).toBe('Status');

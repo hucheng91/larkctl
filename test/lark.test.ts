@@ -68,7 +68,7 @@ describe('patchWsClient (card frames over long connection)', () => {
     const sent: any[] = [];
     (ws as any).sendMessage = (d: any) => sent.push(d);
     const logs: string[] = [];
-    patchWsClient(ws, (s) => logs.push(s));
+    patchWsClient(ws, (s) => logs.push(s), true);
     (ws as any).eventDispatcher = createDispatcher(() => undefined, onAction);
     await (ws as any).handleEventData(frame('card', {
       schema: '2.0', header: { event_type: 'card.action.trigger', event_id: 'e1' },
@@ -80,5 +80,16 @@ describe('patchWsClient (card frames over long connection)', () => {
     expect(sent[0].headers.find((h: any) => h.key === 'type').value).toBe('card');
     const resp = JSON.parse(new TextDecoder().decode(sent[0].payload));
     expect(JSON.parse(Buffer.from(resp.data, 'base64').toString())).toEqual({ toast: { type: 'info', content: 'ok' } });
+  });
+});
+describe('patchWsClient logging', () => {
+  it('is quiet per-frame unless debug is on', async () => {
+    const ws = new lark.WSClient({ appId: 'a', appSecret: 's', loggerLevel: lark.LoggerLevel.error });
+    (ws as any).sendMessage = () => undefined;
+    const logs: string[] = [];
+    patchWsClient(ws, (s) => logs.push(s), false);
+    (ws as any).eventDispatcher = createDispatcher(() => undefined, async () => ({}));
+    await (ws as any).handleEventData({ headers: [{ key: 'type', value: 'event' }, { key: 'message_id', value: 'm' }, { key: 'sum', value: '1' }, { key: 'seq', value: '0' }], payload: new TextEncoder().encode('{}') });
+    expect(logs).toEqual([]);
   });
 });

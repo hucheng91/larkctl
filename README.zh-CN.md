@@ -1,23 +1,66 @@
-# larkctl
+<h1 align="center">🛰️ larkctl</h1>
 
-> 用手机上的飞书 / Lark 机器人远程控制你的电脑，以及电脑上的编程 Agent（Codex CLI、Claude Code、OpenCode……）。不需要公网 IP、端口映射、内网穿透或 VPN。
+<p align="center"><b>在飞书里遥控你的电脑写代码 —— 用手机上的飞书 / Lark 机器人控制电脑和上面的编程 Agent。</b><br/>
+Codex · Claude Code · OpenCode · 自定义 Agent · Shell · 截图 · 语音 · 话题并行。不需要公网 IP、端口映射、内网穿透或 VPN。</p>
 
-[English](README.md) · v0.1 · MIT
+<p align="center">
+  <a href="https://github.com/hucheng91/larkctl/actions/workflows/ci.yml"><img src="https://github.com/hucheng91/larkctl/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT"></a>
+  <img src="https://img.shields.io/badge/node-%3E%3D18.17-339933?logo=node.js&logoColor=white" alt="node >= 18.17">
+  <img src="https://img.shields.io/badge/Feishu%20%2F%20Lark-long%20connection-3370FF" alt="Feishu / Lark">
+  <img src="https://img.shields.io/badge/agents-Codex%20%7C%20Claude%20Code%20%7C%20OpenCode-8A2BE2" alt="agents">
+</p>
 
-## 为什么
+<p align="center"><a href="README.md">English</a> · <a href="#-快速开始">快速开始</a> · <a href="#命令">命令</a> · <a href="#安全">安全</a> · <a href="#-常见问题">常见问题</a></p>
 
-很多开发者（尤其在国内）没法方便地从手机访问家里/公司的电脑：没有公网 IP、运营商 NAT、VPN 慢或不可用。但几乎人人手机上都有飞书。飞书开放平台的 **长连接事件订阅** 让电脑上的程序主动向飞书建立 *出站* WebSocket 来接收机器人消息——电脑本身不需要被访问到。
+<p align="center">
+  <a href="docs/demo.mp4"><img src="docs/demo.gif" width="800" alt="larkctl 演示 —— 点击观看 MP4"></a><br/>
+  <sub>▶️ <a href="docs/demo.mp4">观看完整演示视频（MP4）</a></sub>
+</p>
 
-`larkctl` 就是这样一个小守护进程：你私聊自己的机器人「修一下 web 项目里挂掉的测试」，它在该项目目录下调用本地编程 Agent，把进度实时更新到一张卡片里，完成后回复结果。也支持 Shell 命令、截图和控制命令，并有白名单和危险命令二次确认。
+## ✨ 功能
 
-## 快速开始
+| | | |
+|---|---|---|
+| 🤖 **可插拔编程 Agent**<br/>Codex、Claude Code、OpenCode、自定义命令 Agent、npm/JS 插件 | 💬 **一句话写代码**<br/>普通文本发给 Agent，进度实时更新在卡片里 | 🧵 **话题并行多任务**<br/>每个飞书话题独立的 Agent、项目、会话和任务 |
+| 🎛️ **菜单卡片一键操作**<br/>切换 Agent / 项目、新会话、停止、状态；按钮不可用时回复数字即可 | 📸 **随时截图**<br/>`/screenshot` 或直接说「截图」看桌面 | 🐚 **远程命令**<br/>`/sh` 或 `!cmd`，bash/zsh/PowerShell，超时与 `/stop` |
+| 🎤 **语音 & 🖼 图片输入**<br/>飞书 ASR / whisper；图片直接交给 Agent | 🔐 **默认安全**<br/>白名单、危险命令二次确认、只读模式、审计日志 | 🌐 **NAT 后也能用**<br/>只有出站 WebSocket，电脑不暴露任何端口 |
 
-```bash
-npx larkctl init      # App ID / Secret、飞书或 Lark、白名单、默认 Agent 和目录
-npx larkctl start     # 连接并开始服务（Ctrl-C 退出）
+## 🖼 截图
+
+<table>
+<tr><td width="50%"><img src="docs/images/01-menu.png" alt="menu"><p align="center">菜单卡片 —— 点按钮或回复数字</p></td><td width="50%"><img src="docs/images/02-switch.png" alt="switch agent"><p align="center">切换 Codex / Claude</p></td></tr>
+<tr><td><img src="docs/images/03-task.png" alt="task"><p align="center">一句话让 AI 写代码并运行</p></td><td><img src="docs/images/04-screenshot.png" alt="screenshot"><p align="center">随时截图看进度</p></td></tr>
+<tr><td><img src="docs/images/06-thread.png" alt="threads"><p align="center">话题并行多任务</p></td><td><img src="docs/images/07-sh.png" alt="shell"><p align="center">/sh 远程执行命令</p></td></tr>
+</table>
+
+## 🔌 工作原理
+
+```mermaid
+flowchart LR
+  P["📱 Feishu / Lark<br/>on your phone"] --> F["☁️ Feishu Open Platform<br/>long connection (WebSocket)"]
+  F --> D["💻 larkctl<br/>on your computer"]
+  D --> A1["Codex CLI"]
+  D --> A2["Claude Code"]
+  D --> A3["OpenCode / custom / plugins"]
+  D --> SH["Shell · Screenshot"]
 ```
 
-在飞书里私聊机器人：
+飞书开放平台的 **长连接事件订阅** 让 larkctl 主动向飞书建立 *出站* WebSocket 接收机器人消息，电脑无需被公网访问。larkctl 把消息分发给当前项目目录下选定的 Agent / Shell，把进度以可更新卡片的形式回传，并写入审计日志。
+
+## 🚀 快速开始
+
+要求：Node.js ≥ 18.17；电脑上已安装并登录需要的 Agent CLI（`codex`、`claude`、`opencode`）。
+
+```bash
+npm i -g github:hucheng91/larkctl   # 安装 larkctl 命令
+larkctl init                        # App ID / Secret、飞书或 Lark、白名单、默认 Agent 和目录
+larkctl start                       # 连接并开始服务（Ctrl-C 退出；--daemon 后台运行）
+```
+
+1. 创建飞书企业自建应用，开启 **机器人** 能力，添加权限，事件 **和** 回调都选 **长连接** —— 详见 [创建飞书应用（分步）](#创建飞书应用分步)。
+2. 运行 `larkctl init` + `larkctl start`，发布应用版本，私聊机器人 `/whoami`，把 `open_id` 加入白名单后重启。
+3. 发送 `/menu`，或者直接告诉它要做什么。
 
 ```
 /whoami                        → 显示你的 open_id（用 `larkctl init` 加入白名单）
@@ -26,14 +69,12 @@ npx larkctl start     # 连接并开始服务（Ctrl-C 退出）
 /agent claude                  → 切换 Agent（codex | claude | opencode | 自定义 | 插件）
 /new                           → 开新会话
 !git status                    → Shell（也可用 /sh）
-/stop  /status  /screenshot  /help
+/stop  /status  /screenshot  /menu
 ```
 
-完全不用飞书也能试：`npx larkctl start --mock` —— 标准输入的每一行当作聊天消息，回复打印到终端（示例见 [docs/evidence/mock-session.txt](docs/evidence/mock-session.txt)）。
+完全不用飞书也能试：`larkctl start --mock` —— 标准输入的每一行当作聊天消息，回复打印到终端（示例见 [docs/evidence/mock-session.txt](docs/evidence/mock-session.txt)）。
 
-要求：Node.js ≥ 18.17；电脑上已安装并登录需要的 Agent CLI（`codex`、`claude`、`opencode`）。
-
-## 架构
+<details><summary>详细架构</summary>
 
 ```mermaid
 flowchart LR
@@ -51,6 +92,8 @@ flowchart LR
   R -- "回复/更新卡片、上传文件/图片<br/>(Open API, HTTPS)" --> F
   F --> P
 ```
+
+</details>
 
 ## 命令
 
@@ -147,26 +190,26 @@ export default adapter;
    - `im:message` 获取与发送单聊、群组消息（回复及 **更新卡片消息** 需要）
    - `im:resource` 获取与上传图片或文件资源（截图、长输出文件、下载你发的图片/语音）
    - `speech_to_text:speech` （可选）语音消息识别（飞书 ASR）
-5. **先**在电脑上运行 `npx larkctl init` 和 `npx larkctl start` —— 后台选择长连接模式时会检测是否有在线连接。
+5. **先**在电脑上运行 `larkctl init` 和 `larkctl start` —— 后台选择长连接模式时会检测是否有在线连接。
 6. **事件与回调 → 事件配置**：订阅方式选 **使用长连接接收事件**，保存；**添加事件** → `im.message.receive_v1`（接收消息 v2.0）。
    **回调配置** 页签：订阅方式同样选 **使用长连接接收回调**，**添加回调** → `card.action.trigger`（卡片回传交互）—— 快捷按钮需要它。
    可选：**机器人 → 自定义菜单**：可添加「发送文字消息」类型的菜单项，如 `/menu`、`/screenshot`、`/status`、`/stop`，larkctl 当作普通文字处理（无需订阅菜单事件）。
 7. **版本管理与发布** → 创建版本，可用范围设为你自己，申请发布（企业内可能需要管理员审批；权限和事件的修改都要发布新版本后才生效）。
-8. 在飞书里搜索机器人名字，私聊发送 `/whoami`，把 `open_id` 加入白名单（再次 `npx larkctl init`），重启。
+8. 在飞书里搜索机器人名字，私聊发送 `/whoami`，把 `open_id` 加入白名单（再次 `larkctl init`），重启。
 9. 群聊（可选）：把机器人拉进群，@它发送 `/whoami` 得到 `chat_id`，加入 `allowChats`。群里只有 @机器人 的消息会送达，且发送者仍需在 `allowUsers` 中（除非开启 `allowAnyUserInAllowedChats`）。
 
 国际版 Lark（larksuite.com）在 `init` 时选择 `lark` 域名。
 
 ## 配置
 
-`npx larkctl init` 写入 `config.json`（文件权限 600）：
+`larkctl init` 写入 `config.json`（文件权限 600）：
 - macOS `~/Library/Application Support/larkctl/` · Windows `%APPDATA%\larkctl\` · Linux `$XDG_CONFIG_HOME/larkctl/`（可用 `LARKCTL_CONFIG_DIR` 覆盖）。环境变量 `LARKCTL_APP_SECRET` 可覆盖存储的 Secret。
 
-其他配置项：`allowUsers`、`allowChats`、`allowAnyUserInAllowedChats`(false)、`replyToStrangers`(false=不回复)、`readOnly`(false)、`commandTimeoutSec`(120)、`agentTimeoutSec`(1800)、`maxReplyChars`(3500)、`defaultAgent`、`defaultCwd`、`projects`（`{"web": "/Users/me/code/web"}`）、`customAgents`、`plugins`、`agentArgs`、`extraDangerousPatterns`（正则字符串）、`progressIntervalSec`(5)。同目录下有 `audit.log`（JSONL 审计日志）、`state.json`（每个会话的目录/Agent/session）和守护进程日志。`npx larkctl config` 打印配置（Secret 已脱敏）。
+其他配置项：`allowUsers`、`allowChats`、`allowAnyUserInAllowedChats`(false)、`replyToStrangers`(false=不回复)、`readOnly`(false)、`commandTimeoutSec`(120)、`agentTimeoutSec`(1800)、`maxReplyChars`(3500)、`defaultAgent`、`defaultCwd`、`projects`（`{"web": "/Users/me/code/web"}`）、`customAgents`、`plugins`、`agentArgs`、`extraDangerousPatterns`（正则字符串）、`progressIntervalSec`(5)。同目录下有 `audit.log`（JSONL 审计日志）、`state.json`（每个会话的目录/Agent/session）和守护进程日志。`larkctl config` 打印配置（Secret 已脱敏）。
 
 ## 后台运行
 
-- `npx larkctl start --daemon` / `npx larkctl stop` —— 简单的后台进程（日志在配置目录 `larkctl.log`）。
+- `larkctl start --daemon` / `larkctl stop` —— 简单的后台进程（日志在配置目录 `larkctl.log`）。
 - macOS launchd：[docs/service/com.larkctl.plist](docs/service/com.larkctl.plist)
 - Linux systemd 用户服务：[docs/service/larkctl.service](docs/service/larkctl.service)
 - Windows 任务计划程序 / NSSM：[docs/service/windows.md](docs/service/windows.md)
@@ -196,6 +239,20 @@ export default adapter;
 - 卡片 Markdown 有长度限制，超长回答以文件发送。
 - 危险命令检测基于正则，可被绕过。
 
+## ❓ 常见问题
+
+**卡片按钮点了没反应（如飞书个人版）？** 部分版本/租户不会投递卡片回调（`card.action.trigger`）。每张菜单/状态卡片都同时列出带编号的选项，并在底部提示「按钮点了没反应？（如飞书个人版不支持卡片回调）直接回复数字即可」—— 直接回复 `1`、`2`… 即可。另外请确认 **回调配置**（不只是事件）也选了长连接，并发布了新版本。
+
+**Codex / Claude Code 能用其他模型吗？** 可以 —— 通过 [magpie](https://github.com/yetone/magpie) 这样的网关把 Codex / Claude Code 的请求转到其他模型。larkctl 只是调用这些 CLI，只要在启动 `larkctl start` 的环境里设置好它们需要的环境变量/配置（如 `MAGPIE_API_KEY`、base URL）即可生效。
+
+**需要公网 IP / 服务器吗？** 不需要，larkctl 只建立到飞书/Lark 的出站连接。
+
+**能同时跑多个任务吗？** 可以：每个任务开一个话题。每个会话或话题同一时间运行一个任务。
+
+**怎么看进度？** Agent 进度每 `progressIntervalSec` 秒更新到卡片里；随时发送 `/status`、`/screenshot` 或「截图」。
+
+**调试日志？** 设置 `LARKCTL_DEBUG=1` 记录每个收到的 WebSocket 帧（默认关闭）。
+
 ## 参考与同类项目
 
 - **飞书官方 CLI** —— [`@larksuite/cli`](https://www.npmjs.com/package/@larksuite/cli)（`npx @larksuite/cli`）：`lark-cli event subscribe` 通过同样的长连接接收事件，`lark-cli im +messages-reply` 回复消息。适合脚本化；larkctl 则是基于 Node SDK、带白名单的专用守护进程。
@@ -211,3 +268,7 @@ npm run build && node dist/cli.js start --mock
 ```
 
 CI 在 Ubuntu、macOS、Windows 上运行 lint、类型检查、单元测试和 `--mock` 冒烟测试。
+
+## 许可证
+
+[MIT](LICENSE) © hucheng91

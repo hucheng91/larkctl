@@ -3,8 +3,8 @@
 ## Option A: Task Scheduler (built in)
 Run in PowerShell (as your normal user):
 ```powershell
-$npx = (Get-Command npx.cmd).Source
-$action  = New-ScheduledTaskAction -Execute $npx -Argument "-y larkctl start"
+$bin = (Get-Command larkctl.cmd).Source   # after: npm i -g github:hucheng91/larkctl
+$action  = New-ScheduledTaskAction -Execute $bin -Argument "start"
 $trigger = New-ScheduledTaskTrigger -AtLogOn
 $set     = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit 0
 Register-ScheduledTask -TaskName larkctl -Action $action -Trigger $trigger -Settings $set

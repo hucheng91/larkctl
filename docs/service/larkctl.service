@@ -6,7 +6,7 @@ Description=larkctl Feishu/Lark remote control
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/env npx -y larkctl start
+ExecStart=/usr/bin/env larkctl start
 Restart=always
 RestartSec=5
 

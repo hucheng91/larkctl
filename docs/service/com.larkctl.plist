@@ -8,9 +8,7 @@
   <key>Label</key><string>com.larkctl</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/opt/homebrew/bin/npx</string>
-    <string>-y</string>
-    <string>larkctl</string>
+    <string>/opt/homebrew/bin/larkctl</string>
     <string>start</string>
   </array>
   <key>EnvironmentVariables</key>

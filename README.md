@@ -1,23 +1,66 @@
-# larkctl
+<h1 align="center">🛰️ larkctl</h1>
 
-> Remote-control your computer — and the coding agents on it (Codex CLI, Claude Code, OpenCode, …) — from your phone, through a Feishu / Lark bot. No public IP, port forwarding, NAT traversal or VPN needed.
+<p align="center"><b>Remote-control your computer — and the coding agents on it — from your phone, through a Feishu / Lark bot.</b><br/>
+Codex · Claude Code · OpenCode · custom agents · shell · screenshots · voice · threads. No public IP, port forwarding or VPN.</p>
 
-[中文文档](README.zh-CN.md) · v0.1 · MIT
+<p align="center">
+  <a href="https://github.com/hucheng91/larkctl/actions/workflows/ci.yml"><img src="https://github.com/hucheng91/larkctl/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT"></a>
+  <img src="https://img.shields.io/badge/node-%3E%3D18.17-339933?logo=node.js&logoColor=white" alt="node >= 18.17">
+  <img src="https://img.shields.io/badge/Feishu%20%2F%20Lark-long%20connection-3370FF" alt="Feishu / Lark">
+  <img src="https://img.shields.io/badge/agents-Codex%20%7C%20Claude%20Code%20%7C%20OpenCode-8A2BE2" alt="agents">
+</p>
 
-## Why
+<p align="center"><a href="README.zh-CN.md">中文文档</a> · <a href="#-quick-start">Quick start</a> · <a href="#commands">Commands</a> · <a href="#security">Security</a> · <a href="#-faq">FAQ</a></p>
 
-Many developers (especially in mainland China) can't easily reach their home/office machine from a phone: no public IP, carrier-grade NAT, VPNs that are slow or blocked. Almost everyone has Feishu/Lark on their phone, though. Feishu's **long-connection event subscription** lets a program on your computer open an *outbound* WebSocket to Feishu and receive bot messages — so the computer never needs to be reachable.
+<p align="center">
+  <a href="docs/demo.mp4"><img src="docs/demo.gif" width="800" alt="larkctl demo — click for the MP4"></a><br/>
+  <sub>▶️ <a href="docs/demo.mp4">Watch the full demo video (MP4)</a></sub>
+</p>
 
-`larkctl` is a small daemon that does exactly that: you DM your own bot "fix the failing test in project web", and it runs your local coding agent in that project, streams progress into an updating card, and replies with the result. Shell commands, screenshots, and control commands are also available, behind an allowlist and confirmation for dangerous commands.
+## ✨ Features
 
-## Quick start
+| | | |
+|---|---|---|
+| 🤖 **Pluggable coding agents**<br/>Codex, Claude Code, OpenCode, custom command agents, npm/JS plugins | 💬 **One sentence → code**<br/>Plain text goes to the agent; progress streams into a live-updating card | 🧵 **Threads run in parallel**<br/>Each Feishu thread (话题) has its own agent, project, session & job |
+| 🎛️ **One-tap menu cards**<br/>Switch agent / project, new session, stop, status — with a numbered-reply fallback | 📸 **Screenshots on demand**<br/>`/screenshot` or just say 截图 to see your desktop | 🐚 **Remote shell**<br/>`/sh` or `!cmd` in bash/zsh/PowerShell with timeouts & `/stop` |
+| 🎤 **Voice & 🖼 image input**<br/>Feishu ASR / whisper; images are passed to the agent | 🔐 **Secure by default**<br/>Allowlist, confirm dangerous commands, read-only mode, audit log | 🌐 **Works behind NAT**<br/>Outbound WebSocket only — nothing exposed on your machine |
 
-```bash
-npx larkctl init      # app id / secret, feishu or lark, allowlist, default agent & dir
-npx larkctl start     # connect and serve (Ctrl-C to quit)
+## 🖼 Screenshots
+
+<table>
+<tr><td width="50%"><img src="docs/images/01-menu.png" alt="menu"><p align="center">Menu card — tap or reply a number</p></td><td width="50%"><img src="docs/images/02-switch.png" alt="switch agent"><p align="center">Switch Codex / Claude</p></td></tr>
+<tr><td><img src="docs/images/03-task.png" alt="task"><p align="center">One sentence: agent writes & runs code</p></td><td><img src="docs/images/04-screenshot.png" alt="screenshot"><p align="center">Screenshot of your desktop</p></td></tr>
+<tr><td><img src="docs/images/06-thread.png" alt="threads"><p align="center">Threads (话题) = parallel sessions</p></td><td><img src="docs/images/07-sh.png" alt="shell"><p align="center">Remote shell with /sh</p></td></tr>
+</table>
+
+## 🔌 How it works
+
+```mermaid
+flowchart LR
+  P["📱 Feishu / Lark<br/>on your phone"] --> F["☁️ Feishu Open Platform<br/>long connection (WebSocket)"]
+  F --> D["💻 larkctl<br/>on your computer"]
+  D --> A1["Codex CLI"]
+  D --> A2["Claude Code"]
+  D --> A3["OpenCode / custom / plugins"]
+  D --> SH["Shell · Screenshot"]
 ```
 
-Then in Feishu, DM the bot:
+Feishu's **long-connection event subscription** lets larkctl open an *outbound* WebSocket to Feishu and receive your bot messages, so your computer never needs to be reachable from the internet. larkctl dispatches each message to the selected agent / shell in the right project directory, streams progress back as an updating card, and writes everything to an audit log.
+
+## 🚀 Quick start
+
+Requirements: Node.js ≥ 18.17; the agent CLIs you want (`codex`, `claude`, `opencode`) installed and logged in on that machine.
+
+```bash
+npm i -g github:hucheng91/larkctl   # install the `larkctl` CLI
+larkctl init                        # app id / secret, feishu or lark, allowlist, default agent & dir
+larkctl start                       # connect and serve (Ctrl-C to quit; --daemon to detach)
+```
+
+1. Create a Feishu custom app with the **Bot** feature, add the scopes and switch events **and** callbacks to **long connection** — step by step in [Create the Feishu / Lark app](#create-the-feishu--lark-app).
+2. Run `larkctl init` + `larkctl start`, publish the app version, DM the bot `/whoami`, add your `open_id` to the allowlist, restart.
+3. Send `/menu` — or just tell it what to build.
 
 ```
 /whoami                        → shows your open_id (add it to the allowlist via `larkctl init`)
@@ -26,14 +69,12 @@ fix the flaky test in api.ts   → plain text = prompt for the current agent (se
 /agent claude                  → switch agent (codex | claude | opencode | custom | plugins)
 /new                           → start a fresh agent session
 !git status                    → shell (/sh also works)
-/stop  /status  /screenshot  /help
+/stop  /status  /screenshot  /menu
 ```
 
-Try it without Feishu at all: `npx larkctl start --mock` — stdin lines become chat messages, replies print to the terminal (see [docs/evidence/mock-session.txt](docs/evidence/mock-session.txt)).
+Try it without Feishu at all: `larkctl start --mock` — stdin lines become chat messages, replies print to the terminal (see [docs/evidence/mock-session.txt](docs/evidence/mock-session.txt)).
 
-Requirements: Node.js ≥ 18.17; the agent CLIs you want (`codex`, `claude`, `opencode`) installed and logged in on that machine.
-
-## Architecture
+<details><summary>Detailed architecture</summary>
 
 ```mermaid
 flowchart LR
@@ -51,6 +92,8 @@ flowchart LR
   R -- "reply / patch card, upload file/image<br/>(Open API, HTTPS)" --> F
   F --> P
 ```
+
+</details>
 
 ## Commands
 
@@ -150,31 +193,31 @@ Register it in `config.json`: `"plugins": ["./my-adapter.mjs", "larkctl-adapter-
    - `im:resource` — upload images/files (screenshots, long output)
    - `speech_to_text:speech` — (optional) voice message transcription via Feishu ASR
    (Batch import: `{"scopes":{"tenant":["im:message","im:message:send_as_bot","im:message.p2p_msg:readonly","im:message.group_at_msg:readonly","im:resource","speech_to_text:speech"]}}`)
-5. Run `npx larkctl init` then `npx larkctl start` on your computer **first** — the console checks for a live connection when you pick long-connection mode.
+5. Run `larkctl init` then `larkctl start` on your computer **first** — the console checks for a live connection when you pick long-connection mode.
 6. **Events & Callbacks → Event configuration**: subscription mode **"Receive events through persistent connection" / 使用长连接接收事件**, save; **Add event** → `im.message.receive_v1` (Receive message v2.0).
    **Callback configuration** tab (回调配置): subscription mode **persistent connection** too, then **Add callback** → `card.action.trigger` (卡片回传交互) — required for the quick-select buttons.
    Optional: **Bot → Custom menu** (机器人自定义菜单) — you can add menu items that *send a text message* such as `/menu`, `/screenshot`, `/status`, `/stop`; larkctl handles them like typed text (it does not subscribe to the bot-menu event).
 7. **Version Management & Release** → create a version, set availability to yourself, submit/publish (in your own tenant, an admin approval may be needed; changes to scopes/events only take effect after publishing a new version).
-8. Find the bot in Feishu (search its name), DM `/whoami`, put your `open_id` into the allowlist (`npx larkctl init` again), restart.
+8. Find the bot in Feishu (search its name), DM `/whoami`, put your `open_id` into the allowlist (`larkctl init` again), restart.
 9. Groups (optional): add the bot to a group, @-mention it with `/whoami` to get the `chat_id`, add it to `allowChats`. In groups only @-mentions reach the bot, and the sender must still be in `allowUsers` (unless `allowAnyUserInAllowedChats`).
 
 For Lark (larksuite.com) choose `lark` as domain in `init`.
 
 ## Configuration
 
-`npx larkctl init` writes `config.json` (file mode 600) in:
+`larkctl init` writes `config.json` (file mode 600) in:
 - macOS `~/Library/Application Support/larkctl/` · Windows `%APPDATA%\larkctl\` · Linux `$XDG_CONFIG_HOME/larkctl/` (override: `LARKCTL_CONFIG_DIR`). `LARKCTL_APP_SECRET` env overrides the stored secret.
 
-Other keys: `allowUsers`, `allowChats`, `allowAnyUserInAllowedChats` (false), `replyToStrangers` (false = silence), `readOnly` (false), `commandTimeoutSec` (120), `agentTimeoutSec` (1800), `maxReplyChars` (3500), `defaultAgent`, `defaultCwd`, `projects` (`{"web": "/Users/me/code/web"}`), `customAgents`, `plugins`, `agentArgs`, `extraDangerousPatterns` (regex strings), `progressIntervalSec` (5). The same dir holds `audit.log` (JSONL), `state.json` (per-chat cwd/agent/session) and daemon logs. `npx larkctl config` prints the config with the secret redacted.
+Other keys: `allowUsers`, `allowChats`, `allowAnyUserInAllowedChats` (false), `replyToStrangers` (false = silence), `readOnly` (false), `commandTimeoutSec` (120), `agentTimeoutSec` (1800), `maxReplyChars` (3500), `defaultAgent`, `defaultCwd`, `projects` (`{"web": "/Users/me/code/web"}`), `customAgents`, `plugins`, `agentArgs`, `extraDangerousPatterns` (regex strings), `progressIntervalSec` (5). The same dir holds `audit.log` (JSONL), `state.json` (per-chat cwd/agent/session) and daemon logs. `larkctl config` prints the config with the secret redacted.
 
 ## Run in the background
 
-- `npx larkctl start --daemon` / `npx larkctl stop` — simple detached process (logs to `larkctl.log` in the config dir).
+- `larkctl start --daemon` / `larkctl stop` — simple detached process (logs to `larkctl.log` in the config dir).
 - macOS launchd: [docs/service/com.larkctl.plist](docs/service/com.larkctl.plist)
 - Linux systemd user unit: [docs/service/larkctl.service](docs/service/larkctl.service)
 - Windows Task Scheduler / NSSM: [docs/service/windows.md](docs/service/windows.md)
 
-Run it as **your user** (LaunchAgent / logon task), so agents find their logins and screenshots can see your desktop. Use `npm i -g larkctl` for a pinned version instead of `npx -y` in services if you prefer.
+Run it as **your user** (LaunchAgent / logon task), so agents find their logins and screenshots can see your desktop. Services call the globally installed `larkctl` binary (`npm i -g github:hucheng91/larkctl`).
 
 ## Security
 
@@ -199,6 +242,20 @@ This is remote code execution on your computer by design. Read before using:
 - Card markdown has size limits; very long answers are attached as files.
 - Dangerous-command detection is pattern-based and bypassable.
 
+## ❓ FAQ
+
+**Buttons on the card don't respond (e.g. Feishu personal edition).** Some editions/tenants don't deliver card callbacks (`card.action.trigger`). Every menu/status card also lists its options as a numbered list with the note *"按钮点了没反应？… Buttons not responding? Reply with a number."* — just reply `1`, `2`, … to pick an option. Also make sure the **callback** subscription (not only events) is set to long connection and a new app version is published.
+
+**Can I use other models with Codex / Claude Code?** Yes — point them at a gateway such as [magpie](https://github.com/yetone/magpie), which routes Codex / Claude Code requests to other model providers. larkctl just runs the CLIs, so whatever env/config they use (e.g. `MAGPIE_API_KEY`, base URL) applies as long as it's set in the environment that starts `larkctl start`.
+
+**Do I need a public IP / server?** No. larkctl only makes outbound connections to Feishu/Lark.
+
+**Can several tasks run at once?** Yes: start a thread (话题) per task. One job runs per chat or thread at a time.
+
+**How do I see what's happening?** Agent progress is patched into the card every `progressIntervalSec`; send `/status`, `/screenshot` or 截图 at any time.
+
+**Debug logging?** Set `LARKCTL_DEBUG=1` to log every inbound WebSocket frame (off by default).
+
 ## Prior art & references
 
 - **Official Feishu/Lark CLI** — [`@larksuite/cli`](https://www.npmjs.com/package/@larksuite/cli) (`npx @larksuite/cli`): `lark-cli event subscribe` streams events over the same long connection, `lark-cli im +messages-reply` replies. Great for scripting; larkctl is a dedicated, allowlisted daemon on top of the Node SDK instead.
@@ -214,3 +271,7 @@ npm run build && node dist/cli.js start --mock
 ```
 
 CI runs lint, typecheck, unit tests and a `--mock` smoke test on Ubuntu, macOS and Windows.
+
+## License
+
+[MIT](LICENSE) © hucheng91

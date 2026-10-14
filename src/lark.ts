@@ -143,14 +143,32 @@ const hdr = (f: WsFrame, k: string) => f.headers?.find((h) => h.key === k)?.valu
  * EventDispatcher, and restore type 'card' on the ack/response frame. Also logs inbound frame types.
  */
 export function patchWsClient(ws: lark.WSClient, log: (s: string) => void) {
-  const w = ws as unknown as { handleEventData: (d: WsFrame) => Promise<void>; sendMessage: (d: WsFrame) => void };
+  const w = ws as unknown as {
+    handleEventData: (d: WsFrame) => Promise<void>; handleControlData: (d: WsFrame) => Promise<void>; sendMessage: (d: WsFrame) => void;
+    communicate: () => void; wsConfig: { getWSInstance: () => { on: (e: string, f: (b: Buffer) => void) => void } | undefined };
+  };
+  // Lowest level: raw socket 'message' before SDK decode (attached before the SDK's own listener).
+  const origComm = w.communicate.bind(ws);
+  w.communicate = () => {
+    w.wsConfig.getWSInstance()?.on('message', (b: Buffer) => {
+      const ascii = Buffer.from(b).toString('latin1').match(/[ -~]{3,}/g)?.slice(0, 12).join('|') ?? '';
+      if (!/\bping\b|\bpong\b/.test(ascii)) log(`ws raw ${b.length}B ${ascii.slice(0, 300)}`);
+    });
+    origComm();
+  };
+  const origCtl = w.handleControlData.bind(ws);
+  w.handleControlData = (d: WsFrame) => {
+    const t = hdr(d, 'type');
+    if (t !== 'ping' && t !== 'pong') log(`ws control frame type=${t} headers=${d.headers.map((h) => h.key).join(',')}`);
+    return origCtl(d);
+  };
   const origHandle = w.handleEventData.bind(ws);
   const origSend = w.sendMessage.bind(ws);
   const cardIds = new Set<string>();
   w.handleEventData = (d: WsFrame) => {
     const type = hdr(d, 'type');
     const id = hdr(d, 'message_id') ?? '';
-    log(`ws frame type=${type} message_id=${id}`);
+    log(`ws frame type=${type} message_id=${id} method=${String(d.method)} headers=${d.headers.map((h) => h.key).join(',')}`);
     if (type === 'card') {
       cardIds.add(id);
       d = { ...d, headers: d.headers.map((h) => (h.key === 'type' ? { ...h, value: 'event' } : h)) };

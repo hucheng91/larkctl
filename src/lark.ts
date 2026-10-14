@@ -133,6 +133,38 @@ export class LarkTransport implements Transport {
   }
 }
 
+type WsFrame = { headers: { key: string; value: string }[]; payload?: Uint8Array } & Record<string, unknown>;
+const hdr = (f: WsFrame, k: string) => f.headers?.find((h) => h.key === k)?.value;
+
+/**
+ * node-sdk 1.75.0 WSClient.handleEventData drops every frame whose header type !== 'event'.
+ * Long-connection card callbacks (card.action.trigger) arrive with type 'card', so they were
+ * silently ignored (button stays "pressed"). Rewrite card frames to 'event' so they reach the
+ * EventDispatcher, and restore type 'card' on the ack/response frame. Also logs inbound frame types.
+ */
+export function patchWsClient(ws: lark.WSClient, log: (s: string) => void) {
+  const w = ws as unknown as { handleEventData: (d: WsFrame) => Promise<void>; sendMessage: (d: WsFrame) => void };
+  const origHandle = w.handleEventData.bind(ws);
+  const origSend = w.sendMessage.bind(ws);
+  const cardIds = new Set<string>();
+  w.handleEventData = (d: WsFrame) => {
+    const type = hdr(d, 'type');
+    const id = hdr(d, 'message_id') ?? '';
+    log(`ws frame type=${type} message_id=${id}`);
+    if (type === 'card') {
+      cardIds.add(id);
+      d = { ...d, headers: d.headers.map((h) => (h.key === 'type' ? { ...h, value: 'event' } : h)) };
+    }
+    return origHandle(d);
+  };
+  w.sendMessage = (d: WsFrame) => {
+    const id = hdr(d, 'message_id') ?? '';
+    if (cardIds.delete(id)) d = { ...d, headers: d.headers.map((h) => (h.key === 'type' ? { ...h, value: 'card' } : h)) };
+    origSend(d);
+  };
+  return ws;
+}
+
 export async function startLark(cfg: Config, onMessage: (m: IncomingMessage) => void, log: (s: string) => void, onAction?: (a: CardAction) => Promise<Record<string, unknown>>) {
   const base = { appId: cfg.appId, appSecret: cfg.appSecret, domain: sdkDomain(cfg.domain), loggerLevel: lark.LoggerLevel.warn };
   const client = new lark.Client(base);
@@ -145,6 +177,7 @@ export async function startLark(cfg: Config, onMessage: (m: IncomingMessage) => 
     onReconnected: () => log('reconnected'),
     onError: (e) => log(`connection error: ${e.message}`),
   });
+  patchWsClient(ws, log);
   await ws.start({ eventDispatcher: createDispatcher(onMessage, onAction) });
   return { client, ws, transport: new LarkTransport(client), media: new LarkMedia(client, cfg) };
 }

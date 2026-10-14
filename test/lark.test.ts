@@ -55,3 +55,30 @@ describe('checkResp', () => {
     expect(() => checkResp('x', { code: 0 })).not.toThrow();
   });
 });
+
+import { patchWsClient } from '../src/lark.js';
+describe('patchWsClient (card frames over long connection)', () => {
+  const frame = (type: string, payload: unknown) => ({
+    headers: [{ key: 'type', value: type }, { key: 'message_id', value: 'm1' }, { key: 'sum', value: '1' }, { key: 'seq', value: '0' }, { key: 'trace_id', value: 't' }],
+    payload: new TextEncoder().encode(JSON.stringify(payload)),
+  });
+  it('dispatches type=card frames to card.action.trigger and returns the response with type card', async () => {
+    const onAction = vi.fn(async () => ({ toast: { type: 'info', content: 'ok' } }));
+    const ws = new lark.WSClient({ appId: 'a', appSecret: 's', loggerLevel: lark.LoggerLevel.error });
+    const sent: any[] = [];
+    (ws as any).sendMessage = (d: any) => sent.push(d);
+    const logs: string[] = [];
+    patchWsClient(ws, (s) => logs.push(s));
+    (ws as any).eventDispatcher = createDispatcher(() => undefined, onAction);
+    await (ws as any).handleEventData(frame('card', {
+      schema: '2.0', header: { event_type: 'card.action.trigger', event_id: 'e1' },
+      event: { operator: { open_id: 'ou1' }, action: { value: { cmd: '/status' } }, context: { open_message_id: 'om1', open_chat_id: 'oc1' } },
+    }));
+    expect(onAction).toHaveBeenCalledWith(expect.objectContaining({ messageId: 'om1', operatorOpenId: 'ou1' }));
+    expect(logs[0]).toContain('type=card');
+    expect(sent).toHaveLength(1);
+    expect(sent[0].headers.find((h: any) => h.key === 'type').value).toBe('card');
+    const resp = JSON.parse(new TextDecoder().decode(sent[0].payload));
+    expect(JSON.parse(Buffer.from(resp.data, 'base64').toString())).toEqual({ toast: { type: 'info', content: 'ok' } });
+  });
+});

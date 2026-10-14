@@ -98,14 +98,22 @@ export class LarkMedia implements Media {
   }
 }
 
+/** Feishu returns {code,msg}; a non-zero code means the message was rejected (e.g. invalid card JSON). */
+export function checkResp(what: string, r: unknown) {
+  const x = r as { code?: number; msg?: string } | undefined;
+  if (x && typeof x.code === 'number' && x.code !== 0) throw new Error(`${what} failed: ${x.code} ${x.msg ?? ''}`.trim());
+}
+
 export class LarkTransport implements Transport {
   constructor(private client: ImClient) {}
   async replyCard(messageId: string, card: Card, o?: ReplyOpts) {
     const r = await this.client.im.v1.message.reply({ path: { message_id: messageId }, data: { msg_type: 'interactive', content: JSON.stringify(buildCard(card)), reply_in_thread: !!o?.thread } });
+    checkResp('reply card', r);
     return r.data?.message_id;
   }
   async updateCard(messageId: string, card: Card) {
-    await this.client.im.v1.message.patch({ path: { message_id: messageId }, data: { content: JSON.stringify(buildCard(card)) } });
+    const r = await this.client.im.v1.message.patch({ path: { message_id: messageId }, data: { content: JSON.stringify(buildCard(card)) } });
+    checkResp('update card', r);
   }
   async replyText(messageId: string, text: string, o?: ReplyOpts) {
     const r = await this.client.im.v1.message.reply({ path: { message_id: messageId }, data: { msg_type: 'text', content: JSON.stringify({ text }), reply_in_thread: !!o?.thread } });

@@ -29,26 +29,45 @@ export interface Transport {
   replyImage(messageId: string, data: Buffer, opts?: ReplyOpts): Promise<void>;
 }
 
-/** Card JSON 1.0 (markdown + action buttons; button clicks arrive as card.action.trigger). */
+/** Plain-text preview used as the card summary (chat list / thread list / notifications show this instead of just the title). */
+export function cardSummary(c: Card): string {
+  const t = (c.body || '').replace(/```[\s\S]*?```/g, ' ').replace(/[*_`>#]/g, '').replace(/\s+/g, ' ').trim();
+  return (t ? `${c.title}: ${t}` : c.title).slice(0, 100);
+}
+
+/**
+ * Card JSON 2.0: header + body.elements. Buttons live directly in body.elements inside a column_set
+ * (the 1.0 `action` container is not allowed in 2.0); clicks use behaviors[{type:'callback'}] and arrive
+ * as card.action.trigger with action.value = the callback value.
+ */
 export function buildCard(c: Card): Record<string, unknown> {
   const elements: Record<string, unknown>[] = [{ tag: 'markdown', content: c.body || ' ' }];
   for (const row of c.buttons ?? []) {
     if (!row.length) continue;
     elements.push({
-      tag: 'action',
-      layout: row.length > 3 ? 'flow' : 'bisected',
-      actions: row.map((b) => ({
-        tag: 'button',
-        text: { tag: 'plain_text', content: b.text },
-        type: b.type ?? 'default',
-        value: { ...(c.actionContext ?? {}), cmd: b.cmd },
+      tag: 'column_set',
+      flex_mode: row.length > 2 ? 'flow' : 'bisect',
+      horizontal_spacing: '8px',
+      columns: row.map((b) => ({
+        tag: 'column',
+        width: 'weighted',
+        weight: 1,
+        elements: [{
+          tag: 'button',
+          text: { tag: 'plain_text', content: b.text },
+          type: b.type ?? 'default',
+          width: 'fill',
+          size: 'medium',
+          behaviors: [{ type: 'callback', value: { ...(c.actionContext ?? {}), cmd: b.cmd } }],
+        }],
       })),
     });
   }
   return {
-    config: { wide_screen_mode: true, update_multi: true },
+    schema: '2.0',
+    config: { update_multi: true, width_mode: 'fill', summary: { content: cardSummary(c) } },
     header: { template: c.color ?? 'blue', title: { tag: 'plain_text', content: c.title } },
-    elements,
+    body: { elements },
   };
 }
 

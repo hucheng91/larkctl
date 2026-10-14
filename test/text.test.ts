@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { extractText, parseCommand, truncate, chunk, stripAnsi } from '../src/text.js';
 
 describe('extractText', () => {
+  it('strips literal leading @name', () => expect(extractText('text', JSON.stringify({ text: '@larkctl /menu' }))).toBe('/menu'));
   it('text message strips mentions', () => expect(extractText('text', JSON.stringify({ text: '@_user_1 /sh ls' }))).toBe('/sh ls'));
   it('post message', () => {
     const c = { zh_cn: { title: 'T', content: [[{ tag: 'text', text: 'hello ' }, { tag: 'at', user_id: 'x' }, { tag: 'a', text: 'link', href: 'h' }], [{ tag: 'text', text: 'line2' }]] } };

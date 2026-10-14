@@ -49,6 +49,9 @@ export interface Config {
   whisperCommand: string;
   /** Send image files mentioned in an agent's answer back to the chat. */
   sendAgentImages: boolean;
+  /** How much the coding agents may change: 'workspace-write' (default: edit files in the project, codex sandboxed),
+   *  'full' (codex danger-full-access / claude bypassPermissions — use when the OS sandbox is unavailable). readOnly forces 'read-only'. */
+  agentAccess: 'workspace-write' | 'full';
 }
 
 export function defaultConfig(): Config {
@@ -75,6 +78,7 @@ export function defaultConfig(): Config {
     asr: 'auto',
     whisperCommand: '',
     sendAgentImages: true,
+    agentAccess: 'workspace-write',
   };
 }
 

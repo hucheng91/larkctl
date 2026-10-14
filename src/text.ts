@@ -10,7 +10,12 @@ export function extractText(msgType: string, content: string): string {
     const rows = (body.content as Array<Array<Record<string, unknown>>>) ?? [];
     text = [body.title ? String(body.title) : '', ...rows.map((r) => r.map((e) => (e.tag === 'text' || e.tag === 'a' ? String(e.text ?? '') : e.tag === 'code_block' ? String(e.text ?? '') : '')).join(''))].filter(Boolean).join('\n');
   }
-  return text.replace(/@_user_\d+/g, '').replace(/@_all/g, '').trim();
+  return stripMentions(text);
+}
+
+/** Remove @mention placeholders (@_user_1, @_all) and leading literal "@name" tokens before parsing commands. */
+export function stripMentions(text: string): string {
+  return text.replace(/@_user_\d+/g, '').replace(/@_all/g, '').trim().replace(/^(?:@\S+[\s\u00a0\u2005]+)+/, '').trim();
 }
 
 export interface ParsedCommand { cmd: string | null; arg: string }
@@ -64,8 +69,11 @@ export type Intent = 'menu' | 'screenshot' | 'progress' | null;
 /** Short natural-language shortcuts typed (or spoken) on the phone. */
 export function naturalIntent(text: string): Intent {
   const t = text.trim().replace(/[\s!！。.?？~～]+$/g, '');
-  if (!t || t.length > 16) return null;
+  if (!t) return null;
   if (/^(help|menu|帮助|菜单|命令|\?|？)$/i.test(t)) return 'menu';
+  // short natural-language menu/feature requests, e.g. "有哪些功能？给我一下菜单"
+  if (t.length <= 30 && (/(菜单|帮助|怎么用|使用说明|\bhelp\b|\bmenu\b)/i.test(t) || /(功能|命令|指令|commands?|features?).{0,6}$|(哪些|什么|有啥|支持|列表|看看|which|what).{0,6}(功能|命令|指令|commands?|features?)/i.test(t))) return 'menu';
+  if (t.length > 16) return null;
   if (/^(发个?|来个?|给我|看看)?(截图|截屏|屏幕截图|screenshot|看看屏幕|看下屏幕)(吧|一下)?$/i.test(t)) return 'screenshot';
   if (/(做得怎么样|做的怎么样|怎么样了|进度|进展|status|跑完了吗|好了吗|完成了吗)/i.test(t)) return 'progress';
   return null;

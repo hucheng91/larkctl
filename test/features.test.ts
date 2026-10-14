@@ -16,9 +16,16 @@ const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0]);
 
 describe('cards & quick-select', () => {
   it('buildCard renders button rows with callback value incl. scope', () => {
-    const c = buildCard({ title: 'T', body: 'B', buttons: [[{ text: 'codex', cmd: '/agent codex' }]], actionContext: { chat: 'oc_1', thread: 'omt_1' } }) as { elements: Array<Record<string, any>> };
-    expect(c.elements[1].tag).toBe('action');
-    expect(c.elements[1].actions[0].value).toEqual({ chat: 'oc_1', thread: 'omt_1', cmd: '/agent codex' });
+    const c = buildCard({ title: 'T', body: 'B', buttons: [[{ text: 'codex', cmd: '/agent codex' }]], actionContext: { chat: 'oc_1', thread: 'omt_1' } }) as any;
+    expect(c.schema).toBe('2.0');
+    expect(c.elements).toBeUndefined();
+    const els = c.body.elements as Array<Record<string, any>>;
+    expect(JSON.stringify(c)).not.toContain('"tag":"action"');
+    expect(els[1].tag).toBe('column_set');
+    const btn = els[1].columns[0].elements[0];
+    expect(btn.tag).toBe('button');
+    expect(btn.behaviors[0]).toEqual({ type: 'callback', value: { chat: 'oc_1', thread: 'omt_1', cmd: '/agent codex' } });
+    expect(c.config.summary.content).toBe('T: B');
   });
   it('/menu, help and unknown commands reply with buttons for agents, projects and controls', async () => {
     const dir = tmp();
@@ -28,6 +35,13 @@ describe('cards & quick-select', () => {
       const cmds = last().card!.buttons!.flat().map((b) => b.cmd);
       expect(cmds).toEqual(expect.arrayContaining(['/agent codex', '/agent claude', '/agent opencode', '/cwd web', '/new', '/stop', '/screenshot', '/status']));
     }
+  });
+  it('group @mention natural-language menu request shows the menu card', async () => {
+    const { send, last } = await makeBot();
+    await send('@larkctl 有哪些功能？给我一下菜单？');
+    expect(last().card!.buttons!.flat().map((b) => b.cmd)).toEqual(expect.arrayContaining(['/agent codex', '/status']));
+    await send('@_user_1 /status');
+    expect(last().card!.title).toBe('Status');
   });
   it('card button click runs the command via handleAction and returns a toast', async () => {
     const { bot, transport } = await makeBot();
@@ -62,6 +76,11 @@ describe('natural shortcuts & screenshot', () => {
     expect(naturalIntent('做得怎么样了？')).toBe('progress');
     expect(naturalIntent('help')).toBe('menu');
     expect(naturalIntent('请帮我把登录页面截图功能重构一下并写测试')).toBeNull();
+    expect(naturalIntent('有哪些功能？给我一下菜单？')).toBe('menu');
+    expect(naturalIntent('当前工具支持哪些命令？')).toBe('menu');
+    expect(naturalIntent('有哪些命令')).toBe('menu');
+    expect(naturalIntent('what commands')).toBe('menu');
+    expect(naturalIntent('给登录页加一个记住密码的功能并跑测试，然后提交代码')).toBeNull();
   });
   it('截图 sends an image; 做得怎么样 sends status + image', async () => {
     const { send, transport } = await makeBot({}, { screenshot: async () => PNG });

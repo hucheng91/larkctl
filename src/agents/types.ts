@@ -21,7 +21,11 @@ export interface AgentRunOptions {
   extraArgs?: string[];
   /** Local image files attached by the user (paths are also listed in the prompt). */
   images?: string[];
+  /** Write-permission level: 'read-only' (larkctl readOnly), 'workspace-write' (edit files in cwd, default) or 'full' (no sandbox). */
+  access?: AgentAccess;
 }
+
+export type AgentAccess = 'read-only' | 'workspace-write' | 'full';
 
 export interface AgentInvocation {
   command: string;

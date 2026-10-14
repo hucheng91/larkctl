@@ -10,12 +10,12 @@ describe('codex adapter', () => {
   it('new session args', () => {
     const inv = codexAdapter.buildInvocation({ prompt: 'fix it', cwd: '/p' });
     expect(inv.command).toBe('codex');
-    expect(inv.args).toEqual(['exec', '--json', '--skip-git-repo-check', '--cd', '/p', '-']);
+    expect(inv.args).toEqual(['exec', '--json', '--skip-git-repo-check', '-c', 'sandbox_mode="workspace-write"', '-c', 'approval_policy="never"', '--cd', '/p', '-']);
     expect(inv.stdin).toBe('fix it');
   });
   it('resume args + extra', () => {
     const inv = codexAdapter.buildInvocation({ prompt: 'more', cwd: '/p', sessionId: 'T1', extraArgs: ['--full-auto'] });
-    expect(inv.args).toEqual(['exec', 'resume', '--json', '--skip-git-repo-check', '--full-auto', 'T1', '-']);
+    expect(inv.args).toEqual(['exec', 'resume', '--json', '--skip-git-repo-check', '-c', 'sandbox_mode="workspace-write"', '-c', 'approval_policy="never"', '--full-auto', 'T1', '-']);
   });
   it('parses events', () => {
     expect(codexAdapter.parseLine!('{"type":"thread.started","thread_id":"T9"}')).toEqual([{ type: 'session', id: 'T9' }]);
@@ -27,8 +27,8 @@ describe('codex adapter', () => {
 
 describe('claude adapter', () => {
   it('args', () => {
-    expect(claudeAdapter.buildInvocation({ prompt: 'p', cwd: '/x' })).toEqual({ command: 'claude', args: ['-p', '--output-format', 'stream-json', '--verbose'], stdin: 'p' });
-    expect(claudeAdapter.buildInvocation({ prompt: 'p', cwd: '/x', sessionId: 'S', extraArgs: ['--permission-mode', 'acceptEdits'] }).args).toEqual(['-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', 'acceptEdits', '--resume', 'S']);
+    expect(claudeAdapter.buildInvocation({ prompt: 'p', cwd: '/x' })).toEqual({ command: 'claude', args: ['-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', 'acceptEdits'], stdin: 'p' });
+    expect(claudeAdapter.buildInvocation({ prompt: 'p', cwd: '/x', sessionId: 'S', extraArgs: ['--model', 'opus'] }).args).toEqual(['-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', 'acceptEdits', '--model', 'opus', '--resume', 'S']);
   });
   it('parses stream-json', () => {
     expect(claudeAdapter.parseLine!('{"type":"system","subtype":"init","session_id":"S1"}')).toEqual([{ type: 'session', id: 'S1' }]);
@@ -36,6 +36,22 @@ describe('claude adapter', () => {
     expect(ev[0]).toEqual({ type: 'text', text: 'ok' });
     expect(ev[1].type).toBe('progress');
   });
+});
+
+describe('agent write access', () => {
+  it('codex maps access to sandbox_mode (exec and resume)', () => {
+    const a = (access: any, sessionId?: string) => codexAdapter.buildInvocation({ prompt: 'p', cwd: '/p', access, sessionId }).args.join(' ');
+    expect(a('read-only')).toContain('sandbox_mode="read-only"');
+    expect(a('workspace-write', 'T')).toContain('sandbox_mode="workspace-write"');
+    expect(a('full')).toContain('sandbox_mode="danger-full-access"');
+  });
+  it('claude maps access to permission mode', () => {
+    const m = (access: any) => { const x = claudeAdapter.buildInvocation({ prompt: 'p', cwd: '/x', access }).args; return x[x.indexOf('--permission-mode') + 1]; };
+    expect(m('read-only')).toBe('plan');
+    expect(m('workspace-write')).toBe('acceptEdits');
+    expect(m('full')).toBe('bypassPermissions');
+  });
+  it('defaultConfig allows workspace writes', () => expect(defaultConfig().agentAccess).toBe('workspace-write'));
 });
 
 describe('opencode adapter', () => {

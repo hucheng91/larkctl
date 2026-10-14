@@ -34,7 +34,7 @@ describe('LarkTransport (mock SDK client)', () => {
     expect(id).toBe('om_r');
     expect(reply.mock.calls[0][0].path.message_id).toBe('om_1');
     expect(reply.mock.calls[0][0].data.msg_type).toBe('interactive');
-    expect(JSON.parse(reply.mock.calls[0][0].data.content).elements[0].content).toBe('B');
+    expect(JSON.parse(reply.mock.calls[0][0].data.content).body.elements[0].content).toBe('B');
     await t.updateCard('om_r', { title: 'T', body: 'C' });
     expect(patch.mock.calls[0][0].path.message_id).toBe('om_r');
   });
@@ -45,5 +45,13 @@ describe('LarkTransport (mock SDK client)', () => {
     await t.replyImage('om_1', Buffer.from('x'));
     expect(reply.mock.calls.map((c) => c[0].data.msg_type)).toEqual(['file', 'image']);
     expect(JSON.parse(reply.mock.calls[0][0].data.content)).toEqual({ file_key: 'fk' });
+  });
+});
+
+import { checkResp } from '../src/lark.js';
+describe('checkResp', () => {
+  it('throws on non-zero Feishu code (rejected card)', () => {
+    expect(() => checkResp('reply card', { code: 230099, msg: 'invalid card' })).toThrow(/230099/);
+    expect(() => checkResp('x', { code: 0 })).not.toThrow();
   });
 });

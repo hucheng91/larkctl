@@ -1,4 +1,7 @@
-import type { AgentAdapter, AgentEvent } from './types.js';
+import type { AgentAdapter, AgentEvent, AgentAccess } from './types.js';
+
+const CODEX_SANDBOX: Record<AgentAccess, string> = { 'read-only': 'read-only', 'workspace-write': 'workspace-write', full: 'danger-full-access' };
+const CLAUDE_MODE: Record<AgentAccess, string> = { 'read-only': 'plan', 'workspace-write': 'acceptEdits', full: 'bypassPermissions' };
 import type { CustomAgentConfig } from '../config.js';
 
 function json(line: string): Record<string, any> | null {
@@ -19,8 +22,10 @@ const CLAUDE_AUTH_HINT = ' — run `claude` then /login on this machine, or set 
 export const codexAdapter: AgentAdapter = {
   name: 'codex',
   description: 'OpenAI Codex CLI (codex exec)',
-  buildInvocation({ prompt, cwd, sessionId, extraArgs = [], images = [] }) {
-    const common = ['--json', '--skip-git-repo-check', ...images.map((f) => `--image=${f}`), ...extraArgs];
+  buildInvocation({ prompt, cwd, sessionId, extraArgs = [], images = [], access = 'workspace-write' }) {
+    // `-c sandbox_mode=...` works for both `exec` and `exec resume` (resume has no --sandbox flag); never ask for approval (non-interactive)
+    const sandbox = ['-c', `sandbox_mode="${CODEX_SANDBOX[access]}"`, '-c', 'approval_policy="never"'];
+    const common = ['--json', '--skip-git-repo-check', ...sandbox, ...images.map((f) => `--image=${f}`), ...extraArgs];
     const args = sessionId
       ? ['exec', 'resume', ...common, sessionId, '-']
       : ['exec', ...common, '--cd', cwd, '-'];
@@ -56,8 +61,8 @@ export const codexAdapter: AgentAdapter = {
 export const claudeAdapter: AgentAdapter = {
   name: 'claude',
   description: 'Anthropic Claude Code (claude -p)',
-  buildInvocation({ prompt, sessionId, extraArgs = [] }) {
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...extraArgs];
+  buildInvocation({ prompt, sessionId, extraArgs = [], access = 'workspace-write' }) {
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', CLAUDE_MODE[access], ...extraArgs];
     if (sessionId) args.push('--resume', sessionId);
     return { command: 'claude', args, stdin: prompt };
   },

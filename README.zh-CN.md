@@ -76,6 +76,7 @@ flowchart LR
 - **语音 🎤**：在飞书里按住说话。机器人下载语音（`im.messageResource`），用 `ffmpeg` 转成 16k PCM，调用 **飞书语音识别**（`speech_to_text` 接口，需要权限 `speech_to_text:speech`），失败时回退到本地 **whisper**（whisper.cpp 的 `whisper-cli`、openai-whisper 的 `whisper`，或配置 `whisperCommand`）。识别结果会先回显（`🎤 …`），之后与文字消息完全相同处理（提示词、`/命令`、截图）。配置：`"asr": "auto" | "feishu" | "whisper" | "off"`。都不可用时会明确回复原因。
 - **图片 🖼**：图片消息或富文本中的图片保存到 `<项目>/.larkctl/inbox/`，交给 Agent：Codex 使用 `--image=<文件>`，所有 Agent 的提示词里都会附上图片路径。单独发送的图片会暂存，附加到你的**下一条**消息。
 - **回传图片**：`/screenshot`（或 📸 按钮、「截图」）通过 `im.image.create` 上传并回复到同一话题。Agent 回答中提到的、本次运行生成/修改的图片文件（如 `saved to chart.png`）最多回传 3 张（`"sendAgentImages": false` 关闭）。
+- **Agent 可写代码**：codex 以 `-c sandbox_mode="workspace-write"` 运行，claude 以 `--permission-mode acceptEdits` 运行。`"agentAccess": "full"` 对应 codex `danger-full-access` / claude `bypassPermissions`；`readOnly: true` 对应 codex `read-only` / claude `plan`。
 - **话题（Thread）**：每个飞书话题拥有独立的 Agent、项目目录、会话和运行中的任务，多个话题可**并行**工作；回复发在话题内（`reply_in_thread`）。话题外的消息共用会话级状态。`/stop` 只停止当前话题的任务。绑定关系持久化在 `state.json`（键为 `chat_id#thread_id`）。新话题继承会话当前的 Agent 和项目。
 
 ## 编程 Agent

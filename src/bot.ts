@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Config } from './config.js';
 import { expandHome } from './config.js';
 import { isAllowed, isDangerous, readOnlyAllows, genCode } from './security.js';
-import { parseCommand, truncate, stripAnsi, naturalIntent, findImagePaths } from './text.js';
+import { stripMentions, parseCommand, truncate, stripAnsi, naturalIntent, findImagePaths } from './text.js';
 import { runProcess, runShell, type Job } from './runner.js';
 import type { Transport, Card, CardButton } from './transport.js';
 import { codeBlock } from './transport.js';
@@ -195,6 +195,7 @@ export class Bot {
         return;
       }
     }
+    m = { ...m, text: stripMentions(m.text) };
     const { cmd, arg } = parseCommand(m.text);
     if (cmd === 'whoami') { await this.whoami(m, true); return; }
     this.audit.write({ event: 'command', user: m.senderOpenId, chat: m.chatId, thread: m.threadId ?? null, cmd: cmd ?? 'agent', arg: arg.slice(0, 500) });
@@ -361,7 +362,7 @@ export class Bot {
     if (s.pendingImages?.length) { delete s.pendingImages; this.save(); }
     const fullPrompt = attached.length ? `${prompt}\n\n[Attached image files from the user: ${attached.join(', ')}]` : prompt;
     const sessionId = s.sessions[adapter.name];
-    const inv = adapter.buildInvocation({ prompt: fullPrompt, cwd: s.cwd, sessionId, extraArgs: this.d.config.agentArgs[adapter.name], images: attached });
+    const inv = adapter.buildInvocation({ prompt: fullPrompt, cwd: s.cwd, sessionId, extraArgs: this.d.config.agentArgs[adapter.name], images: attached, access: this.d.config.readOnly ? 'read-only' : (this.d.config.agentAccess ?? 'workspace-write') });
     const title = `🤖 ${adapter.name} · ${path.basename(s.cwd) || s.cwd}`;
     const cardId = await this.card(m, title, `⏳ working…${sessionId ? ' (continuing session)' : ''}${attached.length ? ` · 🖼 ${attached.length}` : ''}`, 'blue');
     const progress: string[] = [];

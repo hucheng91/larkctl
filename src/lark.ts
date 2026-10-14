@@ -150,7 +150,10 @@ export function patchWsClient(ws: lark.WSClient, log: (s: string) => void) {
   // Lowest level: raw socket 'message' before SDK decode (attached before the SDK's own listener).
   const origComm = w.communicate.bind(ws);
   w.communicate = () => {
+    let first = true;
+    log('ws raw hook attached');
     w.wsConfig.getWSInstance()?.on('message', (b: Buffer) => {
+      if (first) { first = false; log(`ws raw self-check: first inbound frame ${b.length}B`); }
       const ascii = Buffer.from(b).toString('latin1').match(/[ -~]{3,}/g)?.slice(0, 12).join('|') ?? '';
       if (!/\bping\b|\bpong\b/.test(ascii)) log(`ws raw ${b.length}B ${ascii.slice(0, 300)}`);
     });

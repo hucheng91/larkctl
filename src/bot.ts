@@ -40,7 +40,7 @@ export interface Media {
   transcribe(audio: Buffer): Promise<string>;
 }
 
-interface ChatState { cwd: string; agent: string; sessions: Record<string, string>; pendingImages?: string[] }
+interface ChatState { cwd: string; agent: string; sessions: Record<string, string>; pendingImages?: string[]; choices?: string[] }
 interface Pending { code: string; cmd: string; user: string; expires: number }
 interface RunningJob { job: Job; kind: string; label: string; started: number }
 
@@ -107,6 +107,14 @@ export class Bot {
   private opts(m: IncomingMessage) { return { thread: !!m.threadId }; }
 
   private card(m: IncomingMessage, title: string, body: string, color: Card['color'] = 'blue', buttons?: CardButton[][]) {
+    if (buttons?.length) {
+      // Fallback when card button callbacks fail: numbered options, reply with a bare digit to select.
+      const flat = buttons.flat();
+      const s = this.st(m);
+      s.choices = flat.map((b) => b.cmd);
+      this.save();
+      body += `\n\n**回复数字选择 Reply with a number:**\n${flat.map((b, i) => `${i + 1}. ${b.text} — \`${b.cmd}\``).join('\n')}`;
+    }
     return this.d.transport.replyCard(m.messageId, { title, body, color, buttons, actionContext: buttons ? this.ctx(m) : undefined }, this.opts(m));
   }
   private ctx(m: IncomingMessage): Record<string, string> {
@@ -196,6 +204,8 @@ export class Bot {
       }
     }
     m = { ...m, text: stripMentions(m.text) };
+    const pick = /^\s*(\d{1,2})\s*$/.exec(m.text);
+    if (pick && s.choices?.[Number(pick[1]) - 1]) m = { ...m, text: s.choices[Number(pick[1]) - 1] };
     const { cmd, arg } = parseCommand(m.text);
     if (cmd === 'whoami') { await this.whoami(m, true); return; }
     this.audit.write({ event: 'command', user: m.senderOpenId, chat: m.chatId, thread: m.threadId ?? null, cmd: cmd ?? 'agent', arg: arg.slice(0, 500) });

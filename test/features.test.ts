@@ -36,6 +36,16 @@ describe('cards & quick-select', () => {
       expect(cmds).toEqual(expect.arrayContaining(['/agent codex', '/agent claude', '/agent opencode', '/cwd web', '/new', '/stop', '/screenshot', '/status']));
     }
   });
+  it('menu lists numbered options and a bare digit selects one (button fallback)', async () => {
+    const { send, last } = await makeBot();
+    await send('/menu');
+    const c = last().card!;
+    const flat = c.buttons!.flat();
+    expect(c.body).toContain(`1. ${flat[0].text}`);
+    const i = flat.findIndex((b) => b.cmd === '/status');
+    await send(String(i + 1));
+    expect(last().card!.title).toBe('Status');
+  });
   it('group @mention natural-language menu request shows the menu card', async () => {
     const { send, last } = await makeBot();
     await send('@larkctl 有哪些功能？给我一下菜单？');

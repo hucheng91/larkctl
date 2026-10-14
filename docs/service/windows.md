@@ -22,4 +22,4 @@ nssm start larkctl
 (Install globally first: `npm i -g larkctl`.) Services run in session 0, so `/screenshot` will not see your desktop.
 
 ## Option C
-`npx larkctl start --daemon` (detached process, stops at logoff), `npx larkctl stop` to stop it.
+`larkctl start --daemon` (detached process, stops at logoff), `larkctl stop` to stop it.

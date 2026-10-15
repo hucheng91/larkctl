@@ -1,7 +1,5 @@
 <h1 align="center">🛰️ larkctl</h1>
-
-<p align="center"><b>在飞书里遥控你的电脑写代码 —— 用手机上的飞书 / Lark 机器人控制电脑和上面的编程 Agent。</b><br/>
-Codex · Claude Code · OpenCode · 自定义 Agent · Shell · 截图 · 语音 · 话题并行。不需要公网 IP、端口映射、内网穿透或 VPN。</p>
+<p align="center"><b>代码在家里，人在外面？在飞书里发一句话，电脑替你干活。</b></p>
 
 <p align="center">
   <a href="https://github.com/hucheng91/larkctl/actions/workflows/ci.yml"><img src="https://github.com/hucheng91/larkctl/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -13,12 +11,83 @@ Codex · Claude Code · OpenCode · 自定义 Agent · Shell · 截图 · 语音
 
 <p align="center"><a href="README.md">English</a> · <a href="#-快速开始">快速开始</a> · <a href="#命令">命令</a> · <a href="#安全">安全</a> · <a href="#-常见问题">常见问题</a></p>
 
+---
+
+### 🚇 你在地铁上，突然想起……
+
+家里电脑上跑着的 AI Agent 可能早就跑完了，也可能卡在一个问题上；或者那个 bug 的修法你刚好想到了。可电脑在家里，你手里只有手机。
+
+### 😩 想连回自己的电脑？这是个网络问题
+
+家里或公司的电脑躲在路由器和防火墙（NAT）后面。要连回去，得有公网 IP、做端口映射，或者搭 VPN、内网穿透隧道（frp、ngrok、Tailscale……）并一直维护着；跨境网络连接还时断时续。就为了在终端里敲一行字。
+
+### 💡 有了 larkctl：在飞书里发一句话就行
+
+飞书本来就在你手机上，在哪儿都连得上。larkctl 在你的电脑上运行，主动向飞书建立 **出站长连接**：不用开端口，不用公网 IP，也不用隧道。私聊机器人「修一下 web 项目里挂掉的测试」，你电脑上的 Codex / Claude Code / OpenCode 就开工了，进度实时回到聊天里。
+
+| | 传统远程访问 | **larkctl** |
+|---|---|---|
+| 网络配置 | 公网 IP、端口映射、VPN 或内网穿透（frp / ngrok / Tailscale） | **无需配置**，只有出站长连接 |
+| 暴露端口 | SSH / RDP / VNC 暴露在公网 | **零** 入站端口 |
+| 手机上操作 | 小屏终端或远程桌面，打字费劲 | **聊天**：点按钮、说一句话，或者发语音 |
+| 网络不稳 | 断线、重连、从头再来 | 消息由飞书送达，任务在你电脑上继续跑 |
+| 多个任务 | 来回切终端标签、tmux | **一个话题 = 一个任务**，并行进行 |
+| 看进度 | 翻日志 | 实时进度卡片，随时截图 |
+| 安全 | 谁连进来都有完整 Shell | 白名单、危险命令二次确认、只读模式、审计日志 |
+
 <p align="center">
-  <a href="docs/demo.mp4"><img src="docs/demo.gif" width="800" alt="larkctl 演示 —— 点击观看 MP4"></a><br/>
-  <sub>▶️ <a href="docs/demo.mp4">观看完整演示视频（MP4）</a></sub>
+  <a href="docs/demo.mp4"><img src="docs/demo.gif" width="800" alt="larkctl 演示 —— 点击观看带配音的 MP4"></a><br/>
+  <sub>▶️ <a href="docs/demo.mp4">观看 45 秒配音演示视频（MP4）</a></sub>
 </p>
 
-## ✨ 功能
+## ☕ 用 larkctl 的一天
+
+<table>
+<tr><td width="46%"><img src="docs/images/01-menu.png" alt="01-menu"></td><td>
+
+**08:40 · 地铁上：「电脑在干嘛呢？」**
+
+发一句 `/menu`。一张卡片显示当前 Agent、项目和会话，所有操作都有按钮。你的飞书版本点按钮没反应？直接回复数字。
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/02-switch.png" alt="02-switch"></td><td>
+
+**08:45 · 「这个活让 Claude 来」**
+
+点 **claude**（或回复 `2`），下一句话就交给 Claude Code。每个 Agent 各自保留会话。
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/03-task.png" alt="03-task"></td><td>
+
+**09:10 · 咖啡馆里：一句话，真代码**
+
+「在 /tmp/demo 里用 Python 写一个打印九九乘法表的脚本并运行」—— Agent 在 *你的* 电脑上写好文件、跑完，回报结果：12 秒完成。
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/04-screenshot.png" alt="04-screenshot"></td><td>
+
+**12:30 · 「真的跑通了吗？」**
+
+发「截图」，电脑桌面截图直接回到聊天里。
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/06-thread.png" alt="06-thread"></td><td>
+
+**15:00 · 两件事同时做**
+
+每个任务开一个话题。每个话题有自己的 Agent、项目和会话，并行运行、互不干扰。
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/07-sh.png" alt="07-sh"></td><td>
+
+**18:20 · 回家的路上：顺手敲个命令**
+
+`/sh ls /tmp/demo` 或 `!git status` 在项目目录里执行命令并返回输出；危险命令会先让你确认。
+
+</td></tr>
+</table>
+
+## ✨ 你会得到
 
 | | | |
 |---|---|---|
@@ -26,27 +95,40 @@ Codex · Claude Code · OpenCode · 自定义 Agent · Shell · 截图 · 语音
 | 🎛️ **菜单卡片一键操作**<br/>切换 Agent / 项目、新会话、停止、状态；按钮不可用时回复数字即可 | 📸 **随时截图**<br/>`/screenshot` 或直接说「截图」看桌面 | 🐚 **远程命令**<br/>`/sh` 或 `!cmd`，bash/zsh/PowerShell，超时与 `/stop` |
 | 🎤 **语音 & 🖼 图片输入**<br/>飞书 ASR / whisper；图片直接交给 Agent | 🔐 **默认安全**<br/>白名单、危险命令二次确认、只读模式、审计日志 | 🌐 **NAT 后也能用**<br/>只有出站 WebSocket，电脑不暴露任何端口 |
 
-## 🖼 截图
-
-<table>
-<tr><td width="50%"><img src="docs/images/01-menu.png" alt="menu"><p align="center">菜单卡片 —— 点按钮或回复数字</p></td><td width="50%"><img src="docs/images/02-switch.png" alt="switch agent"><p align="center">切换 Codex / Claude</p></td></tr>
-<tr><td><img src="docs/images/03-task.png" alt="task"><p align="center">一句话让 AI 写代码并运行</p></td><td><img src="docs/images/04-screenshot.png" alt="screenshot"><p align="center">随时截图看进度</p></td></tr>
-<tr><td><img src="docs/images/06-thread.png" alt="threads"><p align="center">话题并行多任务</p></td><td><img src="docs/images/07-sh.png" alt="shell"><p align="center">/sh 远程执行命令</p></td></tr>
-</table>
-
 ## 🔌 工作原理
 
 ```mermaid
 flowchart LR
-  P["📱 Feishu / Lark<br/>on your phone"] --> F["☁️ Feishu Open Platform<br/>long connection (WebSocket)"]
-  F --> D["💻 larkctl<br/>on your computer"]
+  P["📱 Feishu / Lark<br/>on your phone"] --> F["☁️ Feishu Open Platform"]
+  D["💻 larkctl<br/>on your computer"] -- "outbound long connection<br/>(no open ports)" --> F
   D --> A1["Codex CLI"]
   D --> A2["Claude Code"]
   D --> A3["OpenCode / custom / plugins"]
   D --> SH["Shell · Screenshot"]
 ```
 
-飞书开放平台的 **长连接事件订阅** 让 larkctl 主动向飞书建立 *出站* WebSocket 接收机器人消息，电脑无需被公网访问。larkctl 把消息分发给当前项目目录下选定的 Agent / Shell，把进度以可更新卡片的形式回传，并写入审计日志。
+larkctl 是电脑上的一个小守护进程，通过飞书长连接事件订阅 *主动* 连到飞书（WebSocket），电脑无需被公网访问。每条消息会交给对应项目目录下选定的 Agent 或 Shell，进度以可更新卡片的形式回传，全部记录到审计日志。
+
+<details><summary>详细架构</summary>
+
+```mermaid
+flowchart LR
+  P[📱 手机飞书 / Lark] -- 发消息 --> F[(飞书开放平台<br/>open.feishu.cn / open.larksuite.com)]
+  F -- "im.message.receive_v1<br/>出站 WebSocket 长连接<br/>(WSClient)" --> D
+  subgraph PC[你的电脑 —— 在 NAT 后面，无需开放入站端口]
+    D[larkctl 守护进程<br/>EventDispatcher] --> S{白名单<br/>只读模式<br/>危险命令检查}
+    S -- Agent 提示词 --> A[Agent 适配器<br/>codex / claude / opencode / 自定义 / 插件]
+    S -- /sh --> SH[bash/zsh · PowerShell]
+    S -- /screenshot --> SC[screencapture / .NET]
+    A --> R[执行器：超时、/stop、杀进程树]
+    SH --> R
+    R --> AU[(audit.log 审计日志)]
+  end
+  R -- "回复/更新卡片、上传文件/图片<br/>(Open API, HTTPS)" --> F
+  F --> P
+```
+
+</details>
 
 ## 🚀 快速开始
 
@@ -73,27 +155,6 @@ larkctl start                       # 连接并开始服务（Ctrl-C 退出；--
 ```
 
 完全不用飞书也能试：`larkctl start --mock` —— 标准输入的每一行当作聊天消息，回复打印到终端（示例见 [docs/evidence/mock-session.txt](docs/evidence/mock-session.txt)）。
-
-<details><summary>详细架构</summary>
-
-```mermaid
-flowchart LR
-  P[📱 手机飞书 / Lark] -- 发消息 --> F[(飞书开放平台<br/>open.feishu.cn / open.larksuite.com)]
-  F -- "im.message.receive_v1<br/>出站 WebSocket 长连接<br/>(WSClient)" --> D
-  subgraph PC[你的电脑 —— 在 NAT 后面，无需开放入站端口]
-    D[larkctl 守护进程<br/>EventDispatcher] --> S{白名单<br/>只读模式<br/>危险命令检查}
-    S -- Agent 提示词 --> A[Agent 适配器<br/>codex / claude / opencode / 自定义 / 插件]
-    S -- /sh --> SH[bash/zsh · PowerShell]
-    S -- /screenshot --> SC[screencapture / .NET]
-    A --> R[执行器：超时、/stop、杀进程树]
-    SH --> R
-    R --> AU[(audit.log 审计日志)]
-  end
-  R -- "回复/更新卡片、上传文件/图片<br/>(Open API, HTTPS)" --> F
-  F --> P
-```
-
-</details>
 
 ## 命令
 

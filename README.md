@@ -1,7 +1,5 @@
 <h1 align="center">🛰️ larkctl</h1>
-
-<p align="center"><b>Remote-control your computer — and the coding agents on it — from your phone, through a Feishu / Lark bot.</b><br/>
-Codex · Claude Code · OpenCode · custom agents · shell · screenshots · voice · threads. No public IP, port forwarding or VPN.</p>
+<p align="center"><b>Your code is at home. You're not. Send a message in Feishu / Lark — your computer does the rest.</b></p>
 
 <p align="center">
   <a href="https://github.com/hucheng91/larkctl/actions/workflows/ci.yml"><img src="https://github.com/hucheng91/larkctl/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -13,12 +11,83 @@ Codex · Claude Code · OpenCode · custom agents · shell · screenshots · voi
 
 <p align="center"><a href="README.zh-CN.md">中文文档</a> · <a href="#-quick-start">Quick start</a> · <a href="#commands">Commands</a> · <a href="#security">Security</a> · <a href="#-faq">FAQ</a></p>
 
+---
+
+### 🚇 You're on the subway, and it suddenly hits you…
+
+…the agent you left running on your home computer probably finished an hour ago. Or it's stuck on a question. Or you just had the perfect idea for that bug fix. Your laptop is at home; all you have is your phone.
+
+### 😩 Getting back to your own computer is a network problem
+
+Your machine sits behind a home router or office firewall (NAT). To reach it you need a public IP, port forwarding, a VPN or a tunnel (frp, ngrok, Tailscale…) to set up and keep alive, and links to overseas services from mainland China often drop out. All that just to type one line into a terminal.
+
+### 💡 With larkctl, you just send a message in Feishu
+
+Feishu / Lark is already on your phone and works on any network. larkctl runs on your computer and opens an **outbound long connection** to Feishu, so there are no ports to open, no public IP and no tunnel. DM your bot "fix the failing test in web" and your local Codex / Claude Code / OpenCode gets to work, posting live progress back to the chat.
+
+| | Traditional remote access | **larkctl** |
+|---|---|---|
+| Network setup | Public IP, port forwarding, VPN or tunnel (frp / ngrok / Tailscale) | **None** — outbound long connection only |
+| Exposed ports | SSH / RDP / VNC open to the internet | **Zero** inbound ports |
+| On your phone | Tiny terminal or remote desktop, fiddly typing | **A chat**: tap buttons, type a sentence, or speak |
+| Flaky networks | Session drops, reconnect, start over | Feishu delivers messages; the job keeps running on your computer |
+| Several tasks | Juggle terminal tabs and tmux | **One thread (话题) = one task**, running in parallel |
+| See what's happening | Scroll logs | Live progress cards, screenshots on demand |
+| Safety | Whoever gets in has a full shell | Allowlist, confirm dangerous commands, read-only mode, audit log |
+
 <p align="center">
-  <a href="docs/demo.mp4"><img src="docs/demo.gif" width="800" alt="larkctl demo — click for the MP4"></a><br/>
-  <sub>▶️ <a href="docs/demo.mp4">Watch the full demo video (MP4)</a></sub>
+  <a href="docs/demo.mp4"><img src="docs/demo.gif" width="800" alt="larkctl demo — click for the MP4 with voiceover"></a><br/>
+  <sub>▶️ <a href="docs/demo.mp4">Watch the 45-second demo with voiceover (MP4, Mandarin)</a></sub>
 </p>
 
-## ✨ Features
+## ☕ A day with larkctl
+
+<table>
+<tr><td width="46%"><img src="docs/images/01-menu.png" alt="01-menu"></td><td>
+
+**08:40 · On the subway: "what’s my computer doing?"**
+
+Send `/menu`. One card shows your agent, project and session, with buttons for everything. No buttons on your Feishu edition? Just reply with a number.
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/02-switch.png" alt="02-switch"></td><td>
+
+**08:45 · "Let’s use Claude for this one."**
+
+Tap **claude** (or reply `2`). The next message goes to Claude Code, and each agent keeps its own session.
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/03-task.png" alt="03-task"></td><td>
+
+**09:10 · At a cafe: one sentence, real code**
+
+"在 /tmp/demo 里用 Python 写一个打印九九乘法表的脚本并运行" ("write a Python script in /tmp/demo that prints the multiplication table, and run it"). The agent writes the file on *your* computer, runs it and reports back: done in 12 s.
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/04-screenshot.png" alt="04-screenshot"></td><td>
+
+**12:30 · "Did it really work?"**
+
+Type `截图` ("screenshot"). A screenshot of your desktop comes straight back into the chat.
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/06-thread.png" alt="06-thread"></td><td>
+
+**15:00 · Two things at once**
+
+Start a thread (话题) for each task. Every thread has its own agent, project and session, so they run in parallel without stepping on each other.
+
+</td></tr>
+<tr><td width="46%"><img src="docs/images/07-sh.png" alt="07-sh"></td><td>
+
+**18:20 · On the train home: one quick command**
+
+`/sh ls /tmp/demo` or `!git status` runs a shell command in your project and returns the output. Dangerous commands ask for confirmation first.
+
+</td></tr>
+</table>
+
+## ✨ What you get
 
 | | | |
 |---|---|---|
@@ -26,27 +95,40 @@ Codex · Claude Code · OpenCode · custom agents · shell · screenshots · voi
 | 🎛️ **One-tap menu cards**<br/>Switch agent / project, new session, stop, status — with a numbered-reply fallback | 📸 **Screenshots on demand**<br/>`/screenshot` or just say 截图 to see your desktop | 🐚 **Remote shell**<br/>`/sh` or `!cmd` in bash/zsh/PowerShell with timeouts & `/stop` |
 | 🎤 **Voice & 🖼 image input**<br/>Feishu ASR / whisper; images are passed to the agent | 🔐 **Secure by default**<br/>Allowlist, confirm dangerous commands, read-only mode, audit log | 🌐 **Works behind NAT**<br/>Outbound WebSocket only — nothing exposed on your machine |
 
-## 🖼 Screenshots
-
-<table>
-<tr><td width="50%"><img src="docs/images/01-menu.png" alt="menu"><p align="center">Menu card — tap or reply a number</p></td><td width="50%"><img src="docs/images/02-switch.png" alt="switch agent"><p align="center">Switch Codex / Claude</p></td></tr>
-<tr><td><img src="docs/images/03-task.png" alt="task"><p align="center">One sentence: agent writes & runs code</p></td><td><img src="docs/images/04-screenshot.png" alt="screenshot"><p align="center">Screenshot of your desktop</p></td></tr>
-<tr><td><img src="docs/images/06-thread.png" alt="threads"><p align="center">Threads (话题) = parallel sessions</p></td><td><img src="docs/images/07-sh.png" alt="shell"><p align="center">Remote shell with /sh</p></td></tr>
-</table>
-
 ## 🔌 How it works
 
 ```mermaid
 flowchart LR
-  P["📱 Feishu / Lark<br/>on your phone"] --> F["☁️ Feishu Open Platform<br/>long connection (WebSocket)"]
-  F --> D["💻 larkctl<br/>on your computer"]
+  P["📱 Feishu / Lark<br/>on your phone"] --> F["☁️ Feishu Open Platform"]
+  D["💻 larkctl<br/>on your computer"] -- "outbound long connection<br/>(no open ports)" --> F
   D --> A1["Codex CLI"]
   D --> A2["Claude Code"]
   D --> A3["OpenCode / custom / plugins"]
   D --> SH["Shell · Screenshot"]
 ```
 
-Feishu's **long-connection event subscription** lets larkctl open an *outbound* WebSocket to Feishu and receive your bot messages, so your computer never needs to be reachable from the internet. larkctl dispatches each message to the selected agent / shell in the right project directory, streams progress back as an updating card, and writes everything to an audit log.
+larkctl is a small daemon on your computer. It connects *out* to Feishu over a WebSocket (Feishu's long-connection event subscription), so your machine never has to be reachable from the internet. Each message goes to the selected agent or shell in the right project directory, and progress streams back as an updating card. Everything is written to an audit log.
+
+<details><summary>Detailed architecture</summary>
+
+```mermaid
+flowchart LR
+  P[📱 Feishu / Lark app<br/>on your phone] -- message --> F[(Feishu Open Platform<br/>open.feishu.cn / open.larksuite.com)]
+  F -- "im.message.receive_v1<br/>over outbound WebSocket<br/>(WSClient long connection)" --> D
+  subgraph PC[Your computer — behind NAT, no inbound ports]
+    D[larkctl daemon<br/>EventDispatcher] --> S{allowlist<br/>read-only<br/>danger check}
+    S -- agent prompt --> A[Agent adapter<br/>codex / claude / opencode / custom / plugin]
+    S -- /sh --> SH[bash/zsh · PowerShell]
+    S -- /screenshot --> SC[screencapture / .NET]
+    A --> R[runner: timeout, /stop, kill tree]
+    SH --> R
+    R --> AU[(audit.log)]
+  end
+  R -- "reply / patch card, upload file/image<br/>(Open API, HTTPS)" --> F
+  F --> P
+```
+
+</details>
 
 ## 🚀 Quick start
 
@@ -73,27 +155,6 @@ fix the flaky test in api.ts   → plain text = prompt for the current agent (se
 ```
 
 Try it without Feishu at all: `larkctl start --mock` — stdin lines become chat messages, replies print to the terminal (see [docs/evidence/mock-session.txt](docs/evidence/mock-session.txt)).
-
-<details><summary>Detailed architecture</summary>
-
-```mermaid
-flowchart LR
-  P[📱 Feishu / Lark app<br/>on your phone] -- message --> F[(Feishu Open Platform<br/>open.feishu.cn / open.larksuite.com)]
-  F -- "im.message.receive_v1<br/>over outbound WebSocket<br/>(WSClient long connection)" --> D
-  subgraph PC[Your computer — behind NAT, no inbound ports]
-    D[larkctl daemon<br/>EventDispatcher] --> S{allowlist<br/>read-only<br/>danger check}
-    S -- agent prompt --> A[Agent adapter<br/>codex / claude / opencode / custom / plugin]
-    S -- /sh --> SH[bash/zsh · PowerShell]
-    S -- /screenshot --> SC[screencapture / .NET]
-    A --> R[runner: timeout, /stop, kill tree]
-    SH --> R
-    R --> AU[(audit.log)]
-  end
-  R -- "reply / patch card, upload file/image<br/>(Open API, HTTPS)" --> F
-  F --> P
-```
-
-</details>
 
 ## Commands
 
